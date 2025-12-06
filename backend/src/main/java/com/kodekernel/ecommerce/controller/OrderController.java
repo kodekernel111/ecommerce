@@ -12,31 +12,24 @@ import java.util.List;
 @RestController
 @RequestMapping("/seller/orders")
 @RequiredArgsConstructor
-
 public class OrderController {
-    
-    private final OrderService service;
 
-    // 1. LIST ALL ORDERS (SUMMARY)
+    private final OrderService orderService;
+
     @GetMapping
-    public List<OrderSummaryDTO> getAllOrders() {
-        return service.getAllOrders();
+    public List<OrderSummaryDTO> listOrders() {
+        return orderService.getOrderSummary();
     }
 
-    // 2. GET ORDER DETAILS
     @GetMapping("/{orderId}")
-    public OrderDetailDTO getOrderDetails(@PathVariable String orderId) {
-        return service.getOrderDetail(orderId);
+    public OrderDetailDTO getDetails(@PathVariable String orderId) {
+        return orderService.getOrderDetail(orderId);
     }
 
-    // 3. UPDATE ORDER STATUS
     @PatchMapping("/{orderId}/status")
-    public String updateOrderStatus(
-            @PathVariable String orderId,
-            @RequestBody StatusRequest req
-    ) {
-        service.updateOrderStatus(orderId, OrderStatus.valueOf(req.status()));
-        return "Order status updated to " + req.status();
+    public String updateStatus(@PathVariable String orderId, @RequestBody StatusRequest req) {
+        orderService.updateOrderStatus(orderId, OrderStatus.valueOf(req.status()));
+        return "Updated to " + req.status();
     }
 
     public record StatusRequest(String status) {}
