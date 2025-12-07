@@ -1,0 +1,57 @@
+package com.kodekernel.ecommerce.service;
+
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
+import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
+import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
+import software.amazon.awssdk.core.sync.RequestBody;
+import software.amazon.awssdk.regions.Region;
+import software.amazon.awssdk.services.s3.S3Client;
+import software.amazon.awssdk.services.s3.model.PutObjectRequest;
+
+import jakarta.annotation.PostConstruct;
+import java.io.IOException;
+import java.util.UUID;
+
+@Service
+public class S3Service {
+
+    @Value("${aws.accessKeyId}")
+    private String accessKeyId;
+
+    @Value("${aws.secretAccessKey}")
+    private String secretAccessKey;
+
+    @Value("${aws.region}")
+    private String region;
+
+    @Value("${aws.s3.bucketName}")
+    private String bucketName;
+
+    private S3Client s3Client;
+
+    @PostConstruct
+    public void init() {
+        this.s3Client = S3Client.builder()
+                .region(Region.of(region))
+                .credentialsProvider(
+                        StaticCredentialsProvider.create(AwsBasicCredentials.create(accessKeyId, secretAccessKey)))
+                .build();
+    }
+
+    public String uploadFile(MultipartFile file) {
+        String fileName = UUID.randomUUID().toString() + "_" + file.getOriginalFilename();
+        try {
+            s3Client.putObject(PutObjectRequest.builder()
+                    .bucket(bucketName)
+                    .key(fileName)
+                    .build(),
+                    RequestBody.fromInputStream(file.getInputStream(), file.getSize()));
+
+            return "https://" + bucketName + ".s3." + region + ".amazonaws.com/" + fileName;
+        } catch (IOException e) {
+            throw new RuntimeException("Failed to upload file to S3", e);
+        }
+    }
+}
