@@ -1,24 +1,29 @@
 package com.kodekernel.ecommerce.entity;
 
-import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.NoArgsConstructor;
-
+import jakarta.persistence.*;
+import lombok.*;
+import java.math.BigDecimal;
 import java.util.UUID;
 
 @Entity
-@Data
+@Table(name = "order_items")
+@Getter
+@Setter
 @NoArgsConstructor
-@AllArgsConstructor
 public class OrderItem {
+
     @Id
-    @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
-    private String productName;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "order_id")
+    private Order order;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "product_id")
+    private Product product;
+
     private Integer quantity;
-    private Double price;
+
+    private BigDecimal price;
 }

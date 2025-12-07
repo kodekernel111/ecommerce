@@ -5,6 +5,7 @@ import lombok.Data;
 import com.kodekernel.ecommerce.entity.OrderStatus;
 import lombok.NoArgsConstructor;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
@@ -17,6 +18,7 @@ public class OrderDTO {
     private UUID userId;
     private LocalDate date;
     private List<OrderItemDTO> items;
-    private Double total;
+    private BigDecimal totalAmount;
     private OrderStatus status;
+    private AddressDTO shippingAddress;
 }
