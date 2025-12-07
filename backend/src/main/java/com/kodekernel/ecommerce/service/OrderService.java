@@ -1,9 +1,10 @@
 package com.kodekernel.ecommerce.service;
 
+import com.kodekernel.ecommerce.dto.AddressDTO;
 import com.kodekernel.ecommerce.dto.OrderDTO;
 import com.kodekernel.ecommerce.dto.OrderItemDTO;
+import com.kodekernel.ecommerce.entity.Address;
 import com.kodekernel.ecommerce.entity.Order;
-import com.kodekernel.ecommerce.entity.OrderItem;
 import com.kodekernel.ecommerce.entity.OrderStatus;
 import com.kodekernel.ecommerce.repository.OrderRepository;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -34,15 +35,37 @@ public class OrderService {
 
     private OrderDTO convertToDTO(Order order) {
         List<OrderItemDTO> itemDTOs = order.getItems().stream()
-                .map(item -> new OrderItemDTO(item.getProductName(), item.getQuantity(), item.getPrice()))
+                .map(item -> new OrderItemDTO(
+                        item.getProduct().getId(),
+                        item.getProduct().getName(),
+                        item.getQuantity(),
+                        item.getPrice()))
                 .collect(Collectors.toList());
+
+        AddressDTO addressDTO = null;
+        if (order.getShippingAddress() != null) {
+            addressDTO = convertToAddressDTO(order.getShippingAddress());
+        }
 
         return new OrderDTO(
                 order.getId(),
-                order.getUserId(),
+                order.getCustomer() != null ? order.getCustomer().getId() : null,
                 order.getOrderDate(),
                 itemDTOs,
                 order.getTotalAmount(),
-                order.getStatus());
+                order.getStatus(),
+                addressDTO);
+    }
+
+    private AddressDTO convertToAddressDTO(Address address) {
+        return new AddressDTO(
+                address.getId(),
+                address.getFullName(),
+                address.getPhone(),
+                address.getLine1(),
+                address.getLine2(),
+                address.getCity(),
+                address.getState(),
+                address.getPincode());
     }
 }
