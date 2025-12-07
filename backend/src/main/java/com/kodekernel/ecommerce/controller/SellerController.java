@@ -3,6 +3,8 @@ package com.kodekernel.ecommerce.controller;
 import com.kodekernel.ecommerce.dto.InventoryResponseDTO;
 import com.kodekernel.ecommerce.dto.ProductDTO;
 import com.kodekernel.ecommerce.dto.OrderDTO;
+import com.kodekernel.ecommerce.dto.OrderDetailDTO;
+import com.kodekernel.ecommerce.dto.OrderSummaryDTO;
 import com.kodekernel.ecommerce.entity.OrderStatus;
 import com.kodekernel.ecommerce.service.OrderService;
 import com.kodekernel.ecommerce.service.ProductService;
@@ -53,25 +55,34 @@ public class SellerController {
     @Autowired
     private OrderService orderService;
 
-    @GetMapping("/orders")
-    public ResponseEntity<List<OrderDTO>> getOrders(
-            @RequestParam(required = false) UUID sellerId) {
-        // Defaulting to a specific UUID if null for testing, or require it.
-        // For now, let's assume it's passed or we handle null in service (which would
-        // return empty list).
-        if (sellerId == null) {
-            // For MVP, maybe return all orders or throw error. Let's return empty or handle
-            // in service.
-            // But repository expects non-null. Let's make it required or use a dummy one.
-            // Given previous pattern, let's require it.
-            return ResponseEntity.badRequest().build();
-        }
-        return ResponseEntity.ok(orderService.getOrders(sellerId));
+    @GetMapping
+    public List<OrderSummaryDTO> listOrders() {
+        return orderService.getOrderSummary();
     }
 
-    @PutMapping("/change-order-status/{orderId}")
-    public ResponseEntity<OrderDTO> changeOrderStatus(@PathVariable UUID orderId,
-            @RequestBody OrderStatus status) {
-        return ResponseEntity.ok(orderService.updateOrderStatus(orderId, status));
+    @GetMapping("/{orderId}")
+    public OrderDetailDTO getDetails(@PathVariable String orderId) {
+        return orderService.getOrderDetail(orderId);
     }
+
+    @PatchMapping("/{orderId}/status")
+    public String updateStatus(@PathVariable String orderId, @RequestBody String status) {
+        orderService.updateOrderStatus(orderId, OrderStatus.valueOf(status));
+        return "Updated to " + status;
+    }
+
+    // @GetMapping("/orders")
+    // public ResponseEntity<List<OrderDTO>> getOrders(
+    // @RequestParam(required = false) UUID sellerId) {
+    // if (sellerId == null) {
+    // return ResponseEntity.badRequest().build();
+    // }
+    // return ResponseEntity.ok(orderService.getOrders(sellerId));
+    // }
+
+    // @PutMapping("/change-order-status/{orderId}")
+    // public ResponseEntity<OrderDTO> changeOrderStatus(@PathVariable UUID orderId,
+    // @RequestBody OrderStatus status) {
+    // return ResponseEntity.ok(orderService.updateOrderStatus(orderId, status));
+    // }
 }
