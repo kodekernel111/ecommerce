@@ -1,3 +1,27 @@
 spring:
   application:
     name: ecommerce
+
+  datasource:
+    url: jdbc:postgresql://localhost:5432/kodekernel
+    username: postgres
+    password: 12345
+    driver-class-name: org.postgresql.Driver
+
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+
+aws:
+  accessKeyId: YOUR_ACCESS_KEY
+  secretAccessKey: YOUR_SECRET_KEY
+  region: us-east-1
+  s3:
+    bucketName: your-bucket-name
+
+server:
+  port: 8083
