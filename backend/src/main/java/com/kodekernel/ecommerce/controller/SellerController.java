@@ -8,6 +8,7 @@ import com.kodekernel.ecommerce.dto.OrderSummaryDTO;
 import com.kodekernel.ecommerce.entity.Coupon;
 import com.kodekernel.ecommerce.entity.OrderStatus;
 import com.kodekernel.ecommerce.service.CouponService;
+import com.kodekernel.ecommerce.entity.OrderStatus;
 import com.kodekernel.ecommerce.service.OrderService;
 import com.kodekernel.ecommerce.service.ProductService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -57,7 +58,7 @@ public class SellerController {
     @Autowired
     private OrderService orderService;
 
-    @GetMapping
+    @GetMapping("/orders")
     public List<OrderSummaryDTO> listOrders() {
         return orderService.getOrderSummary();
     }
