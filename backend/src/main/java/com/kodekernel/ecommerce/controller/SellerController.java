@@ -5,7 +5,9 @@ import com.kodekernel.ecommerce.dto.ProductDTO;
 import com.kodekernel.ecommerce.dto.OrderDTO;
 import com.kodekernel.ecommerce.dto.OrderDetailDTO;
 import com.kodekernel.ecommerce.dto.OrderSummaryDTO;
+import com.kodekernel.ecommerce.entity.Coupon;
 import com.kodekernel.ecommerce.entity.OrderStatus;
+import com.kodekernel.ecommerce.service.CouponService;
 import com.kodekernel.ecommerce.service.OrderService;
 import com.kodekernel.ecommerce.service.ProductService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -85,4 +87,23 @@ public class SellerController {
     // @RequestBody OrderStatus status) {
     // return ResponseEntity.ok(orderService.updateOrderStatus(orderId, status));
     // }
+
+    @Autowired
+    private CouponService couponService;
+
+    @GetMapping("/coupons")
+    public List<Coupon> listCoupons() {
+        return couponService.listCoupons();
+    }
+
+    @DeleteMapping("/coupons/{code}")
+    public ResponseEntity<Map<String, String>> deleteCoupon(@PathVariable String code) {
+        couponService.deleteCoupon(code);
+        return ResponseEntity.ok(Map.of("message", "Successfully Deleted"));
+    }
+
+    @PostMapping("/coupons/addCoupon")
+    public ResponseEntity<Coupon> addCoupon(@RequestBody Coupon coupon) {
+        return ResponseEntity.ok(couponService.addCoupon(coupon));
+    }
 }
