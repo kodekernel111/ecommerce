@@ -33,6 +33,11 @@ public class SellerController {
         return ResponseEntity.ok(productService.getInventory(sellerId));
     }
 
+    @GetMapping("/product/{productId}")
+    public ResponseEntity<ProductDTO> getProduct(@PathVariable UUID productId) {
+        return ResponseEntity.ok(productService.getProduct(productId));
+    }
+
     @PostMapping(value = "/list-new-product/{sellerId}", consumes = { "multipart/form-data" })
     public ResponseEntity<ProductDTO> listNewProduct(
             @PathVariable UUID sellerId,
