@@ -8,7 +8,6 @@ import com.kodekernel.ecommerce.entity.*;
 import com.kodekernel.ecommerce.repository.OrderItemRepository;
 import com.kodekernel.ecommerce.repository.OrderRepository;
 import com.kodekernel.ecommerce.repository.AddressRepository;
-
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Service;
@@ -185,7 +184,6 @@ public class OrderService {
     // address.getState(),
     // address.getPincode());
     // }
-
     public void createDummyOrders(UUID sellerId) {
         // 1. Get Seller's Products
         List<Product> products = productRepo.findBySellerId(sellerId);
