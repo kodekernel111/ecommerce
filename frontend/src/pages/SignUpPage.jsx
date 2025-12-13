@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { useNavigate, Link } from 'react-router-dom';
 import { loginStart, loginSuccess, loginFailure } from '../features/auth/authSlice';
+import api from '../api/axios';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
 import { Store } from 'lucide-react';
@@ -40,7 +41,7 @@ const SignUpPage = () => {
         return Object.keys(errors).length === 0;
     };
 
-    const handleSubmit = (e) => {
+    const handleSubmit = async (e) => {
         e.preventDefault();
 
         if (!validateForm()) {
@@ -49,15 +50,25 @@ const SignUpPage = () => {
 
         dispatch(loginStart());
 
-        // Simulate API call
-        setTimeout(() => {
-            if (name && email && mobile && password) {
-                dispatch(loginSuccess({ email, name, mobile }));
-                navigate('/');
-            } else {
-                dispatch(loginFailure('Please fill in all fields'));
-            }
-        }, 1000);
+        try {
+            const response = await api.post('/auth/register', {
+                username: email,
+                email: email,
+                password: password,
+                role: 'SELLER'
+            });
+
+            const { token, userId } = response.data;
+
+            localStorage.setItem('token', token);
+            localStorage.setItem('userId', userId);
+
+            dispatch(loginSuccess({ email, token }));
+            navigate('/');
+        } catch (err) {
+            console.error("Registration failed", err);
+            dispatch(loginFailure(err.response?.data?.message || 'Registration failed'));
+        }
     };
 
     return (
