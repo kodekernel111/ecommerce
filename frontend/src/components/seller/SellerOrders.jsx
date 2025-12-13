@@ -1,24 +1,43 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import { Eye, Truck, XCircle, CheckCircle } from 'lucide-react';
+import api from '../../api/axios';
 
 const SellerOrders = () => {
-    const orders = [
-        { id: '#ORD-7782', customer: 'Alice Freeman', date: 'Oct 24, 2023', total: '$299.99', status: 'Pending', items: 'Premium Wireless Headphones' },
-        { id: '#ORD-7783', customer: 'Bob Smith', date: 'Oct 23, 2023', total: '$199.50', status: 'Shipped', items: 'Ergonomic Office Chair' },
-        { id: '#ORD-7784', customer: 'Charlie Davis', date: 'Oct 22, 2023', total: '$79.99', status: 'Delivered', items: 'Minimalist Backpack' },
-        { id: '#ORD-7785', customer: 'Dana Lee', date: 'Oct 21, 2023', total: '$349.00', status: 'Pending', items: 'Smart Watch Series 5' },
-        { id: '#ORD-7786', customer: 'Evan Wright', date: 'Oct 20, 2023', total: '$59.98', status: 'Delivered', items: '2x USB-C Cables' },
-    ];
+    const [orders, setOrders] = useState([]);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        const fetchOrders = async () => {
+            try {
+                const sellerId = localStorage.getItem('userId');
+                if (!sellerId) return;
+
+                const response = await api.get(`/seller/orders?sellerId=${sellerId}`);
+                setOrders(response.data);
+            } catch (error) {
+                console.error("Failed to fetch orders", error);
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchOrders();
+    }, []);
 
     const getStatusColor = (status) => {
         switch (status) {
-            case 'Pending': return 'bg-yellow-100 text-yellow-800';
-            case 'Shipped': return 'bg-blue-100 text-blue-800';
-            case 'Delivered': return 'bg-green-100 text-green-800';
-            case 'Cancelled': return 'bg-red-100 text-red-800';
+            case 'PENDING': return 'bg-yellow-100 text-yellow-800';
+            case 'SHIPPED': return 'bg-blue-100 text-blue-800';
+            case 'DELIVERED': return 'bg-green-100 text-green-800';
+            case 'CANCELLED': return 'bg-red-100 text-red-800';
             default: return 'bg-gray-100 text-gray-800';
         }
     };
+
+    if (loading) {
+        return <div className="p-10 text-center">Loading orders...</div>;
+    }
 
     return (
         <div className="bg-white shadow-sm rounded-lg border border-gray-200 overflow-hidden">
@@ -26,53 +45,64 @@ const SellerOrders = () => {
                 <h3 className="text-lg leading-6 font-medium text-gray-900">Recent Orders</h3>
                 <span className="text-sm text-gray-500">Manage your incoming orders</span>
             </div>
-            <div className="overflow-x-auto">
-                <table className="min-w-full divide-y divide-gray-200">
-                    <thead className="bg-gray-50">
-                        <tr>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Order ID</th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Customer</th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Items</th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Total</th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                            <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody className="bg-white divide-y divide-gray-200">
-                        {orders.map((order) => (
-                            <tr key={order.id} className="hover:bg-gray-50 transition-colors">
-                                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-indigo-600">{order.id}</td>
-                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{order.customer}</td>
-                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{order.date}</td>
-                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 truncate max-w-xs">{order.items}</td>
-                                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{order.total}</td>
-                                <td className="px-6 py-4 whitespace-nowrap">
-                                    <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${getStatusColor(order.status)}`}>
-                                        {order.status}
+            <div className="space-y-4 p-4">
+                {orders.map((order) => (
+                    <div key={order.orderId} className="bg-white shadow rounded-lg border border-gray-200 p-4 hover:shadow-md transition-shadow">
+                        <div className="flex flex-col sm:flex-row justify-between gap-4">
+                            {/* Left Side */}
+                            <div className="flex-1 space-y-3">
+                                <div className="flex items-center gap-4">
+                                    <div>
+                                        <span className="text-xs text-gray-500 uppercase tracking-wider font-semibold">Order ID</span>
+                                        <div className="text-sm font-medium text-indigo-600">#{order.orderId || 'N/A'}</div>
+                                    </div>
+                                    <div>
+                                        <span className="text-xs text-gray-500 uppercase tracking-wider font-semibold">Date</span>
+                                        <div className="text-sm text-gray-900">{order.date || 'N/A'}</div>
+                                    </div>
+                                </div>
+                                <div>
+                                    <span className="text-xs text-gray-500 uppercase tracking-wider font-semibold">Customer</span>
+                                    <div className="text-sm font-medium text-gray-900">{order.customer || 'Unknown Customer'}</div>
+                                </div>
+                                <div>
+                                    <span className="text-xs text-gray-500 uppercase tracking-wider font-semibold">Items</span>
+                                    <div className="text-sm text-gray-500">{order.itemsSummary || 'No items'}</div>
+                                </div>
+                            </div>
+
+                            {/* Right Side */}
+                            <div className="flex flex-col sm:items-end justify-between gap-4">
+                                <div className="text-right">
+                                    <span className="text-xs text-gray-500 uppercase tracking-wider font-semibold">Total Amount</span>
+                                    <div className="text-lg font-bold text-gray-900">${Number(order.total || 0).toFixed(2)}</div>
+                                </div>
+
+                                <div className="flex flex-col sm:items-end gap-2">
+                                    <span className={`px-3 py-1 inline-flex text-xs font-medium rounded-full ${getStatusColor(order.status)}`}>
+                                        {order.status || 'UNKNOWN'}
                                     </span>
-                                </td>
-                                <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                                    <div className="flex justify-end gap-2">
-                                        <button className="text-gray-400 hover:text-indigo-600 transition-colors" title="View Details">
+
+                                    <div className="flex items-center gap-2 mt-2">
+                                        <Link to={`/seller/order/${order.orderId}`} className="p-1.5 text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-full transition-colors" title="View Details">
                                             <Eye className="h-5 w-5" />
-                                        </button>
-                                        {order.status === 'Pending' && (
+                                        </Link>
+                                        {order.status === 'PENDING' && (
                                             <>
-                                                <button className="text-gray-400 hover:text-green-600 transition-colors" title="Mark as Shipped">
+                                                <button className="p-1.5 text-gray-400 hover:text-green-600 hover:bg-green-50 rounded-full transition-colors" title="Mark as Shipped">
                                                     <Truck className="h-5 w-5" />
                                                 </button>
-                                                <button className="text-gray-400 hover:text-red-600 transition-colors" title="Cancel Order">
+                                                <button className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-full transition-colors" title="Cancel Order">
                                                     <XCircle className="h-5 w-5" />
                                                 </button>
                                             </>
                                         )}
                                     </div>
-                                </td>
-                            </tr>
-                        ))}
-                    </tbody>
-                </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                ))}
             </div>
         </div>
     );

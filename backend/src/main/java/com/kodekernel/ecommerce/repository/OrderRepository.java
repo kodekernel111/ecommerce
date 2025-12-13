@@ -23,4 +23,6 @@ public interface OrderRepository extends JpaRepository<Order, UUID> {
     Optional<Order> fetchOrderDetail(UUID orderId);
 
     List<Order> findAllByOrderByOrderDateDesc();
+
+    List<Order> findBySellerIdOrderByOrderDateDesc(UUID sellerId);
 }

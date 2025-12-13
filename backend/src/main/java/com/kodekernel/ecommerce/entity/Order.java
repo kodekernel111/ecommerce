@@ -39,7 +39,10 @@ public class Order {
 
     private UUID sellerId;
 
+    private String paymentMethod;
+    private String shippingMethod;
+    private String notes;
+
     @OneToMany(mappedBy = "order", fetch = FetchType.LAZY)
     private List<OrderItem> items = new ArrayList<>();
 }
-

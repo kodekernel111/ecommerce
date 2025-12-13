@@ -15,6 +15,9 @@ public class OrderDetailDTO {
     private String orderDate;
     private String status;
     private BigDecimal totalAmount;
+    private String paymentMethod;
+    private String shippingMethod;
+    private String notes;
 
     private String customerName;
     private String customerEmail;

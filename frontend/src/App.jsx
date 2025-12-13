@@ -2,6 +2,7 @@ import React from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import HomePage from './pages/HomePage';
 import SellerDashboard from './pages/SellerDashboard';
+import SellerOrderDetailsPage from './pages/SellerOrderDetailsPage';
 
 import ProductDetailsPage from './pages/ProductDetailsPage';
 import LoginPage from './pages/LoginPage';
@@ -35,6 +36,7 @@ function App() {
           <Route path="/seller" element={<SellerDashboard />} />
           <Route path="/seller/add-product" element={<AddProductPage />} />
           <Route path="/seller/edit-product/:id" element={<AddProductPage />} />
+          <Route path="/seller/order/:orderId" element={<SellerOrderDetailsPage />} />
           <Route path="/product/:id" element={<ProductDetailsPage />} />
           <Route path="/login" element={<LoginPage />} />
           <Route path="/signup" element={<SignUpPage />} />

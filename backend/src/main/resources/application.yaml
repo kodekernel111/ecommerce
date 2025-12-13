@@ -24,4 +24,5 @@ aws:
     bucketName: your-bucket-name
 
 server:
-  port: 8083
+  port: 8080
+
