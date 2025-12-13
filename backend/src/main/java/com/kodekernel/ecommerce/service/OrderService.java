@@ -1,7 +1,5 @@
 package com.kodekernel.ecommerce.service;
 
-import com.kodekernel.ecommerce.dto.AddressDTO;
-import com.kodekernel.ecommerce.dto.OrderDTO;
 import com.kodekernel.ecommerce.dto.OrderDetailDTO;
 import com.kodekernel.ecommerce.dto.OrderItemDTO;
 import com.kodekernel.ecommerce.dto.OrderSummaryDTO;
@@ -9,6 +7,7 @@ import com.kodekernel.ecommerce.entity.*;
 
 import com.kodekernel.ecommerce.repository.OrderItemRepository;
 import com.kodekernel.ecommerce.repository.OrderRepository;
+import com.kodekernel.ecommerce.repository.AddressRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Service;
@@ -19,7 +18,6 @@ import java.util.List;
 import java.util.Map;
 
 import java.util.UUID;
-import java.util.stream.Collectors;
 
 @Service
 public class OrderService {
@@ -30,19 +28,38 @@ public class OrderService {
     @Autowired
     private OrderItemRepository itemRepo;
 
+    @Autowired
+    private AddressRepository addressRepo;
+
+    @Autowired
+    private com.kodekernel.ecommerce.repository.ProductRepository productRepo;
+
+    @Autowired
+    private com.kodekernel.ecommerce.repository.UserRepository userRepo;
+
     // STATUS TRANSITIONS
     private static final Map<OrderStatus, List<OrderStatus>> allowedTransitions = java.util.Map.of(
-            OrderStatus.PENDING, List.of(OrderStatus.SHIPPED, OrderStatus.CANCELLED),
-            OrderStatus.SHIPPED, List.of(OrderStatus.DELIVERED));
+            OrderStatus.PENDING, List.of(OrderStatus.PROCESSING, OrderStatus.CANCELLED),
+            OrderStatus.PROCESSING, List.of(OrderStatus.SHIPPED, OrderStatus.CANCELLED),
+            OrderStatus.SHIPPED, List.of(OrderStatus.DELIVERED, OrderStatus.CANCELLED));
 
     // 1. LIST ALL ORDERS (SUMMARY TABLE)
-    public List<OrderSummaryDTO> getOrderSummary() {
-        List<Order> orders = orderRepo.findAllByOrderByOrderDateDesc();
+    public List<OrderSummaryDTO> getOrderSummary(UUID sellerId) {
+        List<Order> orders = orderRepo.findBySellerIdOrderByOrderDateDesc(sellerId);
 
         List<OrderSummaryDTO> summaries = new ArrayList<>();
 
         for (Order o : orders) {
             int itemCount = o.getItems().size();
+
+            String itemsSummary = "";
+            if (!o.getItems().isEmpty()) {
+                OrderItem firstItem = o.getItems().get(0);
+                itemsSummary = firstItem.getQuantity() + "x " + firstItem.getProduct().getName();
+                if (itemCount > 1) {
+                    itemsSummary += " + " + (itemCount - 1) + " others";
+                }
+            }
 
             summaries.add(new OrderSummaryDTO(
                     o.getId().toString(),
@@ -50,7 +67,8 @@ public class OrderService {
                     o.getOrderDate().toString(),
                     itemCount,
                     o.getTotalAmount(),
-                    o.getStatus().name()));
+                    o.getStatus().name(),
+                    itemsSummary));
         }
 
         return summaries;
@@ -71,7 +89,8 @@ public class OrderService {
                 oi.getProduct().getName(),
                 oi.getQuantity(),
                 oi.getPrice(),
-                oi.getPrice().multiply(BigDecimal.valueOf(oi.getQuantity())))).toList();
+                oi.getPrice().multiply(BigDecimal.valueOf(oi.getQuantity())),
+                oi.getProduct().getImage())).toList();
 
         Address a = order.getShippingAddress();
         User u = order.getCustomer();
@@ -81,6 +100,9 @@ public class OrderService {
                 order.getOrderDate().toString(),
                 order.getStatus().name(),
                 order.getTotalAmount(),
+                order.getPaymentMethod(),
+                order.getShippingMethod(),
+                order.getNotes(),
 
                 u.getName(),
                 u.getUsername(),
@@ -162,4 +184,73 @@ public class OrderService {
     // address.getState(),
     // address.getPincode());
     // }
+    public void createDummyOrders(UUID sellerId) {
+        // 1. Get Seller's Products
+        List<Product> products = productRepo.findBySellerId(sellerId);
+        if (products.isEmpty()) {
+            throw new RuntimeException("Seller has no products to create orders for");
+        }
+
+        // 2. Get or Create a Dummy Customer
+        User customer = userRepo.findByUsernameOrEmail("dummy_customer", "dummy@example.com")
+                .orElseGet(() -> {
+                    User u = new User();
+                    u.setName("Dummy Customer");
+                    u.setUsername("dummy_customer");
+                    u.setEmail("dummy@example.com");
+                    u.setPassword("password"); // Dummy password
+                    u.setRole(Role.USER);
+                    return userRepo.save(u);
+                });
+
+        // 3. Create 5 Dummy Orders
+        for (int i = 0; i < 5; i++) {
+            Order order = new Order();
+            order.setCustomer(customer);
+            order.setSellerId(sellerId);
+            order.setOrderDate(java.time.LocalDate.now().minusDays((long) (Math.random() * 10)));
+            order.setStatus(OrderStatus.values()[(int) (Math.random() * OrderStatus.values().length)]);
+            order.setPaymentMethod("Credit Card");
+            order.setShippingMethod("Standard Shipping");
+            order.setNotes("Please leave at the front door.");
+
+            // Create Dummy Address
+            Address address = new Address();
+            address.setFullName("Dummy Customer " + i);
+            address.setLine1("123 Dummy St");
+            address.setCity("Dummy City");
+            address.setState("Dummy State");
+            address.setPincode("123456");
+            address.setPhone("555-010" + i);
+            address = addressRepo.save(address);
+            order.setShippingAddress(address);
+
+            // Add Random Items
+            List<OrderItem> items = new ArrayList<>();
+            BigDecimal total = BigDecimal.ZERO;
+            int itemCount = (int) (Math.random() * 3) + 1; // 1 to 3 items
+
+            // Save order first to get ID (if needed by items, but items need order)
+            // We need to save order to get ID, then save items with order reference
+            order = orderRepo.save(order);
+
+            for (int j = 0; j < itemCount; j++) {
+                Product p = products.get((int) (Math.random() * products.size()));
+                OrderItem item = new OrderItem();
+                item.setOrder(order);
+                item.setProduct(p);
+                item.setQuantity((int) (Math.random() * 2) + 1);
+                item.setPrice(BigDecimal.valueOf(p.getPrice()));
+
+                total = total.add(item.getPrice().multiply(BigDecimal.valueOf(item.getQuantity())));
+                items.add(item);
+            }
+
+            itemRepo.saveAll(items);
+
+            order.setTotalAmount(total);
+            order.setItems(items);
+            orderRepo.save(order);
+        }
+    }
 }

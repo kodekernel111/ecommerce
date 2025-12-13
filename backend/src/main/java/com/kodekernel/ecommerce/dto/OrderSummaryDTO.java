@@ -16,4 +16,5 @@ public class OrderSummaryDTO {
     private Integer items;
     private BigDecimal total;
     private String status;
+    private String itemsSummary;
 }

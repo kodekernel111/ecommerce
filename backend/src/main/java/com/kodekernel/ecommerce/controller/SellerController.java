@@ -2,7 +2,7 @@ package com.kodekernel.ecommerce.controller;
 
 import com.kodekernel.ecommerce.dto.InventoryResponseDTO;
 import com.kodekernel.ecommerce.dto.ProductDTO;
-import com.kodekernel.ecommerce.dto.OrderDTO;
+
 import com.kodekernel.ecommerce.dto.OrderDetailDTO;
 import com.kodekernel.ecommerce.dto.OrderSummaryDTO;
 import com.kodekernel.ecommerce.entity.Coupon;
@@ -60,12 +60,18 @@ public class SellerController {
         return ResponseEntity.ok(Map.of("message", "Successfully Deleted"));
     }
 
+    @PostMapping("/dummy-orders/{sellerId}")
+    public ResponseEntity<Map<String, String>> createDummyOrders(@PathVariable UUID sellerId) {
+        orderService.createDummyOrders(sellerId);
+        return ResponseEntity.ok(Map.of("message", "Dummy orders created successfully"));
+    }
+
     @Autowired
     private OrderService orderService;
 
     @GetMapping("/orders")
-    public List<OrderSummaryDTO> listOrders() {
-        return orderService.getOrderSummary();
+    public List<OrderSummaryDTO> listOrders(@RequestParam(required = true) UUID sellerId) {
+        return orderService.getOrderSummary(sellerId);
     }
 
     @GetMapping("/{orderId}")

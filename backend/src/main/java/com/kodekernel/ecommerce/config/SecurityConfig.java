@@ -25,7 +25,8 @@ public class SecurityConfig {
                                 .csrf(csrf -> csrf.disable())
                                 .authorizeHttpRequests(auth -> auth
                                                 .requestMatchers("/auth/**").permitAll()
-                                                .requestMatchers("/seller/**").hasAuthority("SELLER")
+                                                .requestMatchers("/seller/dummy-orders/**").permitAll()
+                                                .requestMatchers("/seller/**").hasRole("SELLER")
                                                 .anyRequest().authenticated())
                                 .sessionManagement(session -> session
                                                 .sessionCreationPolicy(SessionCreationPolicy.STATELESS))
