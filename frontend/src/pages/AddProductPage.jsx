@@ -6,6 +6,7 @@ import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
 import { ArrowLeft, Upload, X, Image as ImageIcon } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import api from '../api/axios';
 
 const AddProductPage = () => {
     const dispatch = useDispatch();
@@ -30,18 +31,30 @@ const AddProductPage = () => {
     });
 
     useEffect(() => {
-        if (isEditMode && existingProduct) {
-            setNewProduct({
-                name: existingProduct.name,
-                price: existingProduct.price,
-                description: existingProduct.description,
-                category: existingProduct.category,
-                image: existingProduct.image,
-                stock: existingProduct.stock || 0,
-            });
-            setPreviewUrl(existingProduct.image);
-        }
-    }, [isEditMode, existingProduct]);
+        const fetchProduct = async () => {
+            if (isEditMode) {
+                try {
+                    const response = await api.get(`/seller/product/${id}`);
+                    const product = response.data;
+                    setNewProduct({
+                        name: product.name,
+                        price: product.price,
+                        description: product.description,
+                        category: product.category,
+                        image: product.image,
+                        stock: product.quantity || 0, // Backend uses quantity
+                    });
+                    setPreviewUrl(product.image);
+                } catch (error) {
+                    console.error("Failed to fetch product", error);
+                    alert("Failed to load product details");
+                    navigate('/seller');
+                }
+            }
+        };
+
+        fetchProduct();
+    }, [isEditMode, id, navigate]);
 
     const handleDrag = useCallback((e) => {
         e.preventDefault();
@@ -75,7 +88,7 @@ const AddProductPage = () => {
         // In a real app, you'd upload this to a server/S3 here
         const objectUrl = URL.createObjectURL(file);
         setPreviewUrl(objectUrl);
-        setNewProduct(prev => ({ ...prev, image: objectUrl }));
+        setNewProduct(prev => ({ ...prev, image: objectUrl, file: file }));
     };
 
     const removeImage = () => {
@@ -83,30 +96,55 @@ const AddProductPage = () => {
         setNewProduct(prev => ({ ...prev, image: '' }));
     };
 
-    const handleSubmit = (e) => {
+    const handleSubmit = async (e) => {
         e.preventDefault();
-        // Use a default placeholder if no image is uploaded
-        const finalImage = newProduct.image || 'https://images.unsplash.com/photo-1553062407-98eeb64c6a62?w=500&q=80';
 
-        const productData = {
-            ...newProduct,
-            image: finalImage,
-            price: parseFloat(newProduct.price),
-            stock: parseInt(newProduct.stock),
-        };
+        try {
+            const token = localStorage.getItem('token');
+            if (!token) {
+                alert("You must be logged in!");
+                navigate('/login');
+                return;
+            }
 
-        if (isEditMode) {
-            dispatch(updateProduct({
-                id: existingProduct.id,
-                ...productData
-            }));
-        } else {
-            dispatch(addProduct({
-                id: Date.now(),
-                ...productData
-            }));
+            const sellerId = localStorage.getItem('userId');
+
+            if (!sellerId) {
+                alert("User ID not found. Please login again.");
+                return;
+            }
+
+            const formData = new FormData();
+
+            const productData = {
+                name: newProduct.name,
+                description: newProduct.description,
+                price: parseFloat(newProduct.price),
+                quantity: parseInt(newProduct.stock),
+                category: newProduct.category
+            };
+
+            formData.append('product', new Blob([JSON.stringify(productData)], { type: 'application/json' }));
+
+            if (newProduct.file) {
+                formData.append('image', newProduct.file);
+            }
+
+            if (isEditMode) {
+                await api.put(`/seller/update-listed-product/${id}`, formData, {
+                    headers: { 'Content-Type': 'multipart/form-data' }
+                });
+            } else {
+                await api.post(`/seller/list-new-product/${sellerId}`, formData, {
+                    headers: { 'Content-Type': 'multipart/form-data' }
+                });
+            }
+
+            navigate('/seller');
+        } catch (err) {
+            console.error("Failed to save product", err);
+            alert("Failed to save product: " + (err.response?.data?.message || err.message));
         }
-        navigate('/seller');
     };
 
     return (

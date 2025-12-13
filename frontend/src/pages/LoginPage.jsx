@@ -5,6 +5,7 @@ import { loginStart, loginSuccess, loginFailure } from '../features/auth/authSli
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
 import { Store } from 'lucide-react';
+import api from '../api/axios';
 
 const LoginPage = () => {
     const [email, setEmail] = useState('');
@@ -13,19 +14,23 @@ const LoginPage = () => {
     const navigate = useNavigate();
     const { isLoading, error } = useSelector((state) => state.auth);
 
-    const handleSubmit = (e) => {
+    const handleSubmit = async (e) => {
         e.preventDefault();
         dispatch(loginStart());
 
-        // Simulate API call
-        setTimeout(() => {
-            if (email && password) {
-                dispatch(loginSuccess({ email, name: email.split('@')[0] }));
-                navigate('/');
-            } else {
-                dispatch(loginFailure('Invalid email or password'));
-            }
-        }, 1000);
+        try {
+            const response = await api.post('/auth/login', { username: email, password });
+            const { token, userId, ...userData } = response.data;
+
+            localStorage.setItem('token', token);
+            localStorage.setItem('userId', userId);
+
+            dispatch(loginSuccess({ email, token }));
+            navigate('/');
+        } catch (err) {
+            console.error("Login failed", err);
+            dispatch(loginFailure(err.response?.data?.message || 'Login failed'));
+        }
     };
 
     return (

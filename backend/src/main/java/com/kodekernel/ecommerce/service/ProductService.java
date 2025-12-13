@@ -33,6 +33,12 @@ public class ProductService {
         return new InventoryResponseDTO(productDTOs, listingValue, lowCountProductDTOs);
     }
 
+    public ProductDTO getProduct(UUID productId) {
+        Product product = productRepository.findById(productId)
+                .orElseThrow(() -> new RuntimeException("Product not found"));
+        return convertToDTO(product);
+    }
+
     @Autowired
     private S3Service s3Service;
 
