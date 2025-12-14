@@ -63,8 +63,12 @@ const SignUpPage = () => {
             localStorage.setItem('token', token);
             localStorage.setItem('userId', userId);
 
-            dispatch(loginSuccess({ email, token }));
-            navigate('/');
+            dispatch(loginSuccess({ ...response.data, email }));
+            if (response.data.role === 'SELLER') {
+                navigate('/seller');
+            } else {
+                navigate('/');
+            }
         } catch (err) {
             console.error("Registration failed", err);
             dispatch(loginFailure(err.response?.data?.message || 'Registration failed'));
