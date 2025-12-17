@@ -50,24 +50,35 @@ const SellerOrders = () => {
                     <div key={order.orderId} className="bg-white shadow rounded-lg border border-gray-200 p-4 hover:shadow-md transition-shadow">
                         <div className="flex flex-col sm:flex-row justify-between gap-4">
                             {/* Left Side */}
-                            <div className="flex-1 space-y-3">
-                                <div className="flex items-center gap-4">
-                                    <div>
-                                        <span className="text-xs text-gray-500 uppercase tracking-wider font-semibold">Order ID</span>
-                                        <div className="text-sm font-medium text-indigo-600">#{order.orderId || 'N/A'}</div>
+                            <div className="flex-1 flex gap-4">
+                                {order.image && (
+                                    <div className="h-24 w-24 flex-shrink-0 overflow-hidden rounded-md border border-gray-200">
+                                        <img
+                                            src={order.image}
+                                            alt="Product"
+                                            className="h-full w-full object-cover object-center"
+                                        />
+                                    </div>
+                                )}
+                                <div className="space-y-3">
+                                    <div className="flex items-center gap-4">
+                                        <div>
+                                            <span className="text-xs text-gray-500 uppercase tracking-wider font-semibold">Order ID</span>
+                                            <div className="text-sm font-medium text-indigo-600">#{order.orderId || 'N/A'}</div>
+                                        </div>
+                                        <div>
+                                            <span className="text-xs text-gray-500 uppercase tracking-wider font-semibold">Date</span>
+                                            <div className="text-sm text-gray-900">{order.date || 'N/A'}</div>
+                                        </div>
                                     </div>
                                     <div>
-                                        <span className="text-xs text-gray-500 uppercase tracking-wider font-semibold">Date</span>
-                                        <div className="text-sm text-gray-900">{order.date || 'N/A'}</div>
+                                        <span className="text-xs text-gray-500 uppercase tracking-wider font-semibold">Customer</span>
+                                        <div className="text-sm font-medium text-gray-900">{order.customer || 'Unknown Customer'}</div>
                                     </div>
-                                </div>
-                                <div>
-                                    <span className="text-xs text-gray-500 uppercase tracking-wider font-semibold">Customer</span>
-                                    <div className="text-sm font-medium text-gray-900">{order.customer || 'Unknown Customer'}</div>
-                                </div>
-                                <div>
-                                    <span className="text-xs text-gray-500 uppercase tracking-wider font-semibold">Items</span>
-                                    <div className="text-sm text-gray-500">{order.itemsSummary || 'No items'}</div>
+                                    <div>
+                                        <span className="text-xs text-gray-500 uppercase tracking-wider font-semibold">Items</span>
+                                        <div className="text-sm text-gray-500">{order.itemsSummary || 'No items'}</div>
+                                    </div>
                                 </div>
                             </div>
 

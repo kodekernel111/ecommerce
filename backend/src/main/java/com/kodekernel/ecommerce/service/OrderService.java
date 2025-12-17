@@ -54,12 +54,16 @@ public class OrderService {
             int itemCount = o.getItems().size();
 
             String itemsSummary = "";
+            String image = null;
             if (!o.getItems().isEmpty()) {
                 OrderItem firstItem = o.getItems().get(0);
                 itemsSummary = firstItem.getQuantity() + "x " + firstItem.getProduct().getName();
                 if (itemCount > 1) {
                     itemsSummary += " + " + (itemCount - 1) + " others";
                 }
+                // Get primary image
+                Product p = firstItem.getProduct();
+                image = p.getImage1() != null ? p.getImage1() : p.getImage();
             }
 
             summaries.add(new OrderSummaryDTO(
@@ -69,7 +73,8 @@ public class OrderService {
                     itemCount,
                     o.getTotalAmount(),
                     o.getStatus().name(),
-                    itemsSummary));
+                    itemsSummary,
+                    image));
         }
 
         return summaries;

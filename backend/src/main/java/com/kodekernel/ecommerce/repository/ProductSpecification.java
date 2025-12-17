@@ -1,0 +1,86 @@
+package com.kodekernel.ecommerce.repository;
+
+import com.kodekernel.ecommerce.entity.Product;
+import org.springframework.data.jpa.domain.Specification;
+import org.springframework.util.StringUtils;
+
+import java.util.UUID;
+
+public class ProductSpecification {
+
+    public static Specification<Product> hasSellerId(UUID sellerId) {
+        return (root, query, cb) -> cb.equal(root.get("sellerId"), sellerId);
+    }
+
+    public static Specification<Product> containsText(String text) {
+        return (root, query, cb) -> {
+            if (!StringUtils.hasText(text))
+                return null;
+            String likePattern = "%" + text.toLowerCase() + "%";
+            return cb.or(
+                    cb.like(cb.lower(root.get("name")), likePattern),
+                    cb.like(cb.lower(root.get("description")), likePattern),
+                    cb.like(cb.lower(root.get("brand")), likePattern),
+                    cb.like(cb.lower(root.get("sku")), likePattern));
+        };
+    }
+
+    public static Specification<Product> hasCategory(String category) {
+        return (root, query, cb) -> {
+            if (!StringUtils.hasText(category))
+                return null;
+            return cb.equal(root.get("category"), category);
+        };
+    }
+
+    public static Specification<Product> priceBetween(Double min, Double max) {
+        return (root, query, cb) -> {
+            if (min == null && max == null)
+                return null;
+            if (min != null && max != null)
+                return cb.between(root.get("price"), min, max);
+            if (min != null)
+                return cb.greaterThanOrEqualTo(root.get("price"), min);
+            return cb.lessThanOrEqualTo(root.get("price"), max);
+        };
+    }
+
+    public static Specification<Product> isLowStock(boolean lowStock) {
+        return (root, query, cb) -> {
+            if (!lowStock)
+                return null;
+            return cb.and(
+                    cb.lessThan(root.get("quantity"), 10),
+                    cb.greaterThan(root.get("quantity"), 0));
+        };
+    }
+
+    public static Specification<Product> isOutOfStock(boolean outOfStock) {
+        return (root, query, cb) -> {
+            if (!outOfStock)
+                return null;
+            return cb.equal(root.get("quantity"), 0);
+        };
+    }
+
+    public static Specification<Product> isActive(Boolean active) {
+        return (root, query, cb) -> {
+            if (active == null)
+                return null;
+            return cb.equal(root.get("active"), active);
+        };
+    }
+
+    public static Specification<Product> createdBetween(java.time.LocalDateTime startDate,
+            java.time.LocalDateTime endDate) {
+        return (root, query, cb) -> {
+            if (startDate == null && endDate == null)
+                return null;
+            if (startDate != null && endDate != null)
+                return cb.between(root.get("createdAt"), startDate, endDate);
+            if (startDate != null)
+                return cb.greaterThanOrEqualTo(root.get("createdAt"), startDate);
+            return cb.lessThanOrEqualTo(root.get("createdAt"), endDate);
+        };
+    }
+}

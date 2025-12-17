@@ -29,8 +29,20 @@ public class SellerController {
     private ProductService productService;
 
     @GetMapping("/inventory")
-    public ResponseEntity<InventoryResponseDTO> getInventory(@RequestParam(required = true) UUID sellerId) {
-        return ResponseEntity.ok(productService.getInventory(sellerId));
+    public ResponseEntity<InventoryResponseDTO> getInventory(
+            @RequestParam(required = true) UUID sellerId,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(required = false) String search,
+            @RequestParam(required = false) String category,
+            @RequestParam(required = false) Double minPrice,
+            @RequestParam(required = false) Double maxPrice,
+            @RequestParam(required = false) String stockStatus,
+            @RequestParam(required = false) String startDate,
+            @RequestParam(required = false) String endDate) {
+        return ResponseEntity.ok(
+                productService.getInventory(sellerId, page, size, search, category, minPrice, maxPrice, stockStatus,
+                        startDate, endDate));
     }
 
     @GetMapping("/product/{productId}")
@@ -42,16 +54,16 @@ public class SellerController {
     public ResponseEntity<ProductDTO> listNewProduct(
             @PathVariable UUID sellerId,
             @RequestPart("product") ProductDTO productDTO,
-            @RequestPart("image") MultipartFile image) {
-        return ResponseEntity.ok(productService.listNewProduct(sellerId, productDTO, image));
+            @RequestPart("images") List<MultipartFile> images) {
+        return ResponseEntity.ok(productService.listNewProduct(sellerId, productDTO, images));
     }
 
     @PutMapping(value = "/update-listed-product/{productId}", consumes = { "multipart/form-data" })
     public ResponseEntity<ProductDTO> updateListedProduct(
             @PathVariable UUID productId,
             @RequestPart("product") ProductDTO productDTO,
-            @RequestPart(value = "image", required = false) MultipartFile image) {
-        return ResponseEntity.ok(productService.updateProduct(productId, productDTO, image));
+            @RequestPart(value = "images", required = false) List<MultipartFile> images) {
+        return ResponseEntity.ok(productService.updateProduct(productId, productDTO, images));
     }
 
     @DeleteMapping("/delete-listed-product/{productId}")

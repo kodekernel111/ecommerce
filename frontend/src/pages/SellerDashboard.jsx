@@ -25,7 +25,8 @@ import {
     Settings,
     Menu,
     X,
-    Trash2
+    Trash2,
+    Search
 } from 'lucide-react';
 
 const SellerDashboard = () => {
@@ -34,9 +35,37 @@ const SellerDashboard = () => {
     const [activeTab, setActiveTab] = useState('inventory');
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
+    // Pagination State
+    const [currentPage, setCurrentPage] = useState(0);
+    const [totalPages, setTotalPages] = useState(0);
+    const pageSize = 10;
+
+    // Filter State
+    const [filterSearch, setFilterSearch] = useState('');
+    const [filterCategory, setFilterCategory] = useState('');
+    const [filterMinPrice, setFilterMinPrice] = useState('');
+    const [filterMaxPrice, setFilterMaxPrice] = useState('');
+    const [filterStockStatus, setFilterStockStatus] = useState('');
+    const [filterStartDate, setFilterStartDate] = useState('');
+    const [filterEndDate, setFilterEndDate] = useState('');
+    const [categories, setCategories] = useState([]); // For dropdown
+
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
     const [productToDelete, setProductToDelete] = useState(null);
     const [deleteConfirmationInput, setDeleteConfirmationInput] = useState('');
+
+    useEffect(() => {
+        // Fetch Categories for filter dropdown
+        const fetchCategories = async () => {
+            try {
+                const response = await api.get('/categories');
+                setCategories(response.data);
+            } catch (error) {
+                console.error("Failed to fetch categories", error);
+            }
+        };
+        fetchCategories();
+    }, []);
 
     useEffect(() => {
         const fetchInventory = async () => {
@@ -44,8 +73,26 @@ const SellerDashboard = () => {
                 const sellerId = localStorage.getItem('userId');
                 if (!sellerId) return;
 
-                const response = await api.get(`/seller/inventory?sellerId=${sellerId}`);
-                setInventoryData(response.data);
+                const params = new URLSearchParams({
+                    sellerId,
+                    page: currentPage,
+                    size: pageSize
+                });
+
+                if (filterSearch) params.append('search', filterSearch);
+                if (filterCategory) params.append('category', filterCategory);
+                if (filterMinPrice) params.append('minPrice', filterMinPrice);
+                if (filterMaxPrice) params.append('maxPrice', filterMaxPrice);
+                if (filterStockStatus) params.append('stockStatus', filterStockStatus);
+                if (filterStartDate) params.append('startDate', filterStartDate);
+                if (filterEndDate) params.append('endDate', filterEndDate);
+
+                const response = await api.get(`/seller/inventory?${params.toString()}`);
+                setInventoryData(response.data.products);
+                setTotalPages(response.data.totalPages);
+                setTotalElements(response.data.totalElements);
+                setTotalValue(response.data.totalValue);
+                setLowStockCount(response.data.lowStockProducts.length);
             } catch (error) {
                 console.error("Failed to fetch inventory", error);
             } finally {
@@ -56,7 +103,7 @@ const SellerDashboard = () => {
         if (activeTab === 'inventory') {
             fetchInventory();
         }
-    }, [activeTab]);
+    }, [activeTab, currentPage, filterSearch, filterCategory, filterMinPrice, filterMaxPrice, filterStockStatus, filterStartDate, filterEndDate]); // Re-fetch when filters change
 
     const handleDelete = (productId) => {
         setProductToDelete(productId);
@@ -68,9 +115,9 @@ const SellerDashboard = () => {
         if (deleteConfirmationInput.toLowerCase() === 'delete' && productToDelete) {
             try {
                 await api.delete(`/seller/delete-listed-product/${productToDelete}`);
-                // Refresh inventory
+                // Refresh inventory logic duplicates fetchInventory, best to extract it but for now inline update:
                 const sellerId = localStorage.getItem('userId');
-                const response = await api.get(`/seller/inventory?sellerId=${sellerId}`);
+                const response = await api.get(`/seller/inventory?sellerId=${sellerId}&page=${currentPage}&size=${pageSize}`);
                 setInventoryData(response.data);
                 setIsDeleteModalOpen(false);
                 setProductToDelete(null);
@@ -88,7 +135,8 @@ const SellerDashboard = () => {
     };
 
     // Calculate Stats
-    const totalProducts = inventoryData?.listedProducts?.length || 0;
+    // Note: totalElements should come from backend for accurate total count across pages
+    const totalProducts = inventoryData?.totalElements || inventoryData?.listedProducts?.length || 0;
     const totalValue = inventoryData?.listingValue || 0;
     const lowStockCount = inventoryData?.lowCountProducts?.length || 0;
     const products = inventoryData?.listedProducts || [];
@@ -170,15 +218,140 @@ const SellerDashboard = () => {
 
                             {/* Inventory Table */}
                             <div className="bg-white shadow-sm rounded-lg border border-gray-200 overflow-hidden">
-                                <div className="px-4 py-5 sm:px-6 border-b border-gray-200 bg-gray-50 flex justify-between items-center">
-                                    <h3 className="text-lg leading-6 font-medium text-gray-900">Current Inventory</h3>
-                                    <Link
-                                        to="/seller/add-product"
-                                        className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-lg shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors"
-                                    >
-                                        <Plus className="h-5 w-5 mr-2" />
-                                        Add Product
-                                    </Link>
+                                <div className="px-4 py-5 sm:px-6 border-b border-gray-200 bg-gray-50">
+                                    <div className="flex justify-between items-center mb-4">
+                                        <h3 className="text-lg leading-6 font-medium text-gray-900">Current Inventory</h3>
+                                        <Link
+                                            to="/seller/add-product"
+                                            className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-lg shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors"
+                                        >
+                                            <Plus className="h-5 w-5 mr-2" />
+                                            Add Product
+                                        </Link>
+                                    </div>
+
+                                    {/* Filters */}
+                                    <div className="bg-white p-6 rounded-lg border border-gray-200 shadow-sm mt-4">
+                                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                                            {/* Search */}
+                                            <div className="col-span-1 lg:col-span-4">
+                                                <div className="relative rounded-md shadow-sm">
+                                                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                                        <Search className="h-5 w-5 text-gray-400" aria-hidden="true" />
+                                                    </div>
+                                                    <input
+                                                        type="text"
+                                                        id="search"
+                                                        placeholder="Search by Name, Brand, or SKU"
+                                                        value={filterSearch}
+                                                        onChange={(e) => setFilterSearch(e.target.value)}
+                                                        className="focus:ring-indigo-500 focus:border-indigo-500 block w-full pl-10 sm:text-sm border-gray-300 rounded-md py-2"
+                                                    />
+                                                </div>
+                                            </div>
+
+                                            {/* Category */}
+                                            <div>
+                                                <label htmlFor="category" className="block text-xs font-medium text-gray-500 uppercase tracking-wider mb-1">Category</label>
+                                                <select
+                                                    id="category"
+                                                    value={filterCategory}
+                                                    onChange={(e) => setFilterCategory(e.target.value)}
+                                                    className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md"
+                                                >
+                                                    <option value="">All Categories</option>
+                                                    {/* Assuming categories are strings, if object adjust map */}
+                                                    {categories.map((cat) => (
+                                                        <option key={cat.id || cat} value={cat.name || cat}>{cat.name || cat}</option>
+                                                    ))}
+                                                </select>
+                                            </div>
+
+                                            {/* Stock Status */}
+                                            <div>
+                                                <label htmlFor="stockStatus" className="block text-xs font-medium text-gray-500 uppercase tracking-wider mb-1">Stock Status</label>
+                                                <select
+                                                    id="stockStatus"
+                                                    value={filterStockStatus}
+                                                    onChange={(e) => setFilterStockStatus(e.target.value)}
+                                                    className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md"
+                                                >
+                                                    <option value="">All Statuses</option>
+                                                    <option value="in_stock">In Stock</option>
+                                                    <option value="low_stock">Low Stock</option>
+                                                    <option value="out_of_stock">Out of Stock</option>
+                                                </select>
+                                            </div>
+
+                                            {/* Date Range */}
+                                            <div className="col-span-1 lg:col-span-2">
+                                                <label className="block text-xs font-medium text-gray-500 uppercase tracking-wider mb-1">Listing Date</label>
+                                                <div className="flex items-center space-x-2">
+                                                    <input
+                                                        type="date"
+                                                        value={filterStartDate}
+                                                        onChange={(e) => setFilterStartDate(e.target.value)}
+                                                        className="block w-full shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm border-gray-300 rounded-md"
+                                                    />
+                                                    <span className="text-gray-500">-</span>
+                                                    <input
+                                                        type="date"
+                                                        value={filterEndDate}
+                                                        onChange={(e) => setFilterEndDate(e.target.value)}
+                                                        className="block w-full shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm border-gray-300 rounded-md"
+                                                    />
+                                                </div>
+                                            </div>
+
+                                            {/* Price Range */}
+                                            <div className="col-span-1 md:col-span-2 lg:col-span-2">
+                                                <label className="block text-xs font-medium text-gray-500 uppercase tracking-wider mb-1">Price Range</label>
+                                                <div className="flex space-x-2 items-center">
+                                                    <div className="relative rounded-md shadow-sm w-full">
+                                                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                                            <span className="text-gray-500 sm:text-sm">$</span>
+                                                        </div>
+                                                        <input
+                                                            type="number"
+                                                            placeholder="Min"
+                                                            value={filterMinPrice}
+                                                            onChange={(e) => setFilterMinPrice(e.target.value)}
+                                                            className="focus:ring-indigo-500 focus:border-indigo-500 block w-full pl-7 sm:text-sm border-gray-300 rounded-md"
+                                                        />
+                                                    </div>
+                                                    <span className="text-gray-500">-</span>
+                                                    <div className="relative rounded-md shadow-sm w-full">
+                                                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                                            <span className="text-gray-500 sm:text-sm">$</span>
+                                                        </div>
+                                                        <input
+                                                            type="number"
+                                                            placeholder="Max"
+                                                            value={filterMaxPrice}
+                                                            onChange={(e) => setFilterMaxPrice(e.target.value)}
+                                                            className="focus:ring-indigo-500 focus:border-indigo-500 block w-full pl-7 sm:text-sm border-gray-300 rounded-md"
+                                                        />
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div className="mt-6 flex justify-end border-t border-gray-100 pt-4">
+                                            <button
+                                                onClick={() => {
+                                                    setFilterSearch('');
+                                                    setFilterCategory('');
+                                                    setFilterMinPrice('');
+                                                    setFilterMaxPrice('');
+                                                    setFilterStockStatus('');
+                                                    setFilterStartDate('');
+                                                    setFilterEndDate('');
+                                                }}
+                                                className="inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                                            >
+                                                Reset Filters
+                                            </button>
+                                        </div>
+                                    </div>
                                 </div>
                                 <div className="overflow-x-auto">
                                     <table className="min-w-full divide-y divide-gray-200">
@@ -198,7 +371,7 @@ const SellerDashboard = () => {
                                                     <td className="px-6 py-4 whitespace-nowrap">
                                                         <div className="flex items-center">
                                                             <div className="flex-shrink-0 h-10 w-10">
-                                                                <img className="h-10 w-10 rounded-lg object-cover" src={product.image} alt="" />
+                                                                <img className="h-10 w-10 rounded-lg object-cover" src={(product.images && product.images.length > 0) ? product.images[0] : product.image} alt="" />
                                                             </div>
                                                             <div className="ml-4">
                                                                 <div className="text-sm font-medium text-gray-900">{product.name}</div>
@@ -233,9 +406,100 @@ const SellerDashboard = () => {
                                                     </td>
                                                 </tr>
                                             ))}
+                                            {/* Fill empty rows to maintain height */}
+                                            {products.length < pageSize && [...Array(pageSize - products.length)].map((_, idx) => (
+                                                <tr key={`empty-${idx}`}>
+                                                    <td className="px-6 py-4 whitespace-nowrap">
+                                                        <div className="flex items-center">
+                                                            <div className="flex-shrink-0 h-10 w-10"></div> {/* Placeholder for image size */}
+                                                            <div className="ml-4">
+                                                                <div className="h-4 w-24"></div>
+                                                                <div className="h-4 w-12 mt-1"></div>
+                                                            </div>
+                                                        </div>
+                                                    </td>
+                                                    <td className="px-6 py-4 whitespace-nowrap"></td>
+                                                    <td className="px-6 py-4 whitespace-nowrap"></td>
+                                                    <td className="px-6 py-4 whitespace-nowrap"></td>
+                                                    <td className="px-6 py-4 whitespace-nowrap"></td>
+                                                    <td className="px-6 py-4 whitespace-nowrap"></td>
+                                                </tr>
+                                            ))}
                                         </tbody>
                                     </table>
                                 </div>
+
+                                {/* Pagination Controls */}
+                                {totalPages > 1 && (
+                                    <div className="bg-white px-4 py-3 border-t border-gray-200 flex items-center justify-between sm:px-6">
+                                        <div className="flex-1 flex justify-between sm:hidden">
+                                            <button
+                                                onClick={() => setCurrentPage(Math.max(0, currentPage - 1))}
+                                                disabled={currentPage === 0}
+                                                className="relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:bg-gray-100 disabled:text-gray-400"
+                                            >
+                                                Previous
+                                            </button>
+                                            <button
+                                                onClick={() => setCurrentPage(Math.min(totalPages - 1, currentPage + 1))}
+                                                disabled={currentPage >= totalPages - 1}
+                                                className="ml-3 relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:bg-gray-100 disabled:text-gray-400"
+                                            >
+                                                Next
+                                            </button>
+                                        </div>
+                                        <div className="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
+                                            <div>
+                                                <p className="text-sm text-gray-700">
+                                                    Showing page <span className="font-medium">{currentPage + 1}</span> of <span className="font-medium">{totalPages}</span>
+                                                </p>
+                                            </div>
+                                            <div>
+                                                <nav className="relative z-0 inline-flex rounded-md shadow-sm -space-x-px" aria-label="Pagination">
+                                                    <button
+                                                        onClick={() => setCurrentPage(Math.max(0, currentPage - 1))}
+                                                        disabled={currentPage === 0}
+                                                        className="relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:bg-gray-100 disabled:text-gray-400"
+                                                    >
+                                                        <span className="sr-only">Previous</span>
+                                                        <span className="h-5 w-5 flex items-center justify-center text-lg">&lsaquo;</span>
+                                                    </button>
+                                                    {/* Page Numbers */}
+                                                    {[...Array(Math.min(5, totalPages)).keys()].map((_, idx) => {
+                                                        // Simple logic to show a window of pages around current page
+                                                        let pageNum = currentPage - 2 + idx;
+                                                        if (currentPage < 2) pageNum = idx;
+                                                        if (currentPage > totalPages - 3) pageNum = totalPages - 5 + idx;
+
+                                                        // Ensure valid range
+                                                        if (pageNum < 0 || pageNum >= totalPages) return null;
+
+                                                        return (
+                                                            <button
+                                                                key={pageNum}
+                                                                onClick={() => setCurrentPage(pageNum)}
+                                                                className={`relative inline-flex items-center px-4 py-2 border text-sm font-medium ${currentPage === pageNum
+                                                                    ? 'z-10 bg-indigo-50 border-indigo-500 text-indigo-600'
+                                                                    : 'bg-white border-gray-300 text-gray-500 hover:bg-gray-50'
+                                                                    }`}
+                                                            >
+                                                                {pageNum + 1}
+                                                            </button>
+                                                        );
+                                                    })}
+                                                    <button
+                                                        onClick={() => setCurrentPage(Math.min(totalPages - 1, currentPage + 1))}
+                                                        disabled={currentPage >= totalPages - 1}
+                                                        className="relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:bg-gray-100 disabled:text-gray-400"
+                                                    >
+                                                        <span className="sr-only">Next</span>
+                                                        <span className="h-5 w-5 flex items-center justify-center text-lg">&rsaquo;</span>
+                                                    </button>
+                                                </nav>
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
                             </div>
                         </div>
 

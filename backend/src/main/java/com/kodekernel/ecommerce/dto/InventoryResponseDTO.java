@@ -13,4 +13,6 @@ public class InventoryResponseDTO {
     private List<ProductDTO> listedProducts;
     private Double listingValue;
     private List<ProductDTO> lowCountProducts;
+    private int totalPages;
+    private long totalElements;
 }
