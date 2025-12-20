@@ -5,13 +5,14 @@ import com.kodekernel.ecommerce.dto.ProductDTO;
 
 import com.kodekernel.ecommerce.dto.OrderDetailDTO;
 import com.kodekernel.ecommerce.dto.OrderListResponseDTO;
-import com.kodekernel.ecommerce.dto.OrderSummaryDTO;
 import com.kodekernel.ecommerce.entity.Coupon;
-import com.kodekernel.ecommerce.entity.OrderStatus;
 import com.kodekernel.ecommerce.service.CouponService;
 import com.kodekernel.ecommerce.entity.OrderStatus;
 import com.kodekernel.ecommerce.service.OrderService;
 import com.kodekernel.ecommerce.service.ProductService;
+import com.kodekernel.ecommerce.entity.HomepageConfig;
+import com.kodekernel.ecommerce.repository.HomepageConfigRepository;
+import com.kodekernel.ecommerce.service.S3Service;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -35,6 +36,12 @@ public class SellerController {
     @Autowired
     private OrderService orderService;
 
+    @Autowired
+    private HomepageConfigRepository homepageConfigRepository;
+
+    @Autowired
+    private S3Service s3Service;
+
     @GetMapping("/inventory")
     public ResponseEntity<InventoryResponseDTO> getInventory(
             @RequestParam(required = true) UUID sellerId,
@@ -50,6 +57,52 @@ public class SellerController {
         return ResponseEntity.ok(
                 productService.getInventory(sellerId, page, size, search, category, minPrice, maxPrice, stockStatus,
                         startDate, endDate));
+    }
+
+    @GetMapping("/homepage-config")
+    public ResponseEntity<HomepageConfig> getHomepageConfig() {
+        List<HomepageConfig> configs = homepageConfigRepository.findAll();
+        if (configs.isEmpty()) {
+            return ResponseEntity.ok(new HomepageConfig());
+        }
+        return ResponseEntity.ok(configs.get(0));
+    }
+
+    @PostMapping("/homepage-config")
+    public ResponseEntity<HomepageConfig> saveHomepageConfig(@RequestBody HomepageConfig config) {
+        // Ensure bidirectional relationship is set for JPA cascade
+        // Ensure bidirectional relationship is set for JPA cascade
+        if (config.getFeaturedSections() != null) {
+            config.getFeaturedSections().forEach(section -> {
+                section.setHomepageConfig(config);
+                if (section.getCards() != null) {
+                    section.getCards().forEach(card -> card.setFeaturedSection(section));
+                }
+            });
+        }
+
+        if (config.getHeroSlides() != null) {
+            config.getHeroSlides().forEach(slide -> slide.setHomepageConfig(config));
+        }
+
+        // If there's an existing config, we might want to update it instead of creating
+        // new if no ID provided
+        // But for now let's assume the frontend sends ID if it exists.
+        // If the DB only ever has one row, we can enforce that:
+        if (config.getId() == null) {
+            List<HomepageConfig> existing = homepageConfigRepository.findAll();
+            if (!existing.isEmpty()) {
+                config.setId(existing.get(0).getId());
+            }
+        }
+
+        return ResponseEntity.ok(homepageConfigRepository.save(config));
+    }
+
+    @PostMapping("/upload-image")
+    public ResponseEntity<Map<String, String>> uploadImage(@RequestParam("file") MultipartFile file) {
+        String url = s3Service.uploadFile(file);
+        return ResponseEntity.ok(Map.of("url", url));
     }
 
     @GetMapping("/product/{productId}")

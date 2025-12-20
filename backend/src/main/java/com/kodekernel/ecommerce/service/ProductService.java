@@ -48,8 +48,7 @@ public class ProductService {
             end = LocalDate.parse(endDate).atTime(LocalTime.MAX);
         }
 
-        Specification<Product> spec = Specification
-                .where(ProductSpecification.hasSellerId(sellerId));
+        Specification<Product> spec = ProductSpecification.hasSellerId(sellerId);
 
         if (search != null && !search.isEmpty()) {
             spec = spec.and(ProductSpecification.containsText(search));

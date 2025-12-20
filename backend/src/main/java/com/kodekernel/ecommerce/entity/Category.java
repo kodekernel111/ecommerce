@@ -26,6 +26,9 @@ public class Category {
     @Column(unique = true, nullable = false)
     private String name;
 
+    @Column(name = "seller_id")
+    private UUID sellerId;
+
     @ManyToOne
     @JoinColumn(name = "parent_id")
     @JsonBackReference

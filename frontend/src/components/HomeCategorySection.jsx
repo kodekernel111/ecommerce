@@ -46,15 +46,18 @@ const HomeCategorySection = () => {
     ];
 
     return (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            {sections.map((section, index) => (
-                <HomeCategoryCard
-                    key={index}
-                    title={section.title}
-                    items={section.items}
-                    linkText={section.linkText}
-                />
-            ))}
+        <div>
+            <h2 className="text-xl font-bold text-gray-900 mb-4">Featured Products</h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                {sections.map((section, index) => (
+                    <HomeCategoryCard
+                        key={index}
+                        title={section.title}
+                        items={section.items}
+                        linkText={section.linkText}
+                    />
+                ))}
+            </div>
         </div>
     );
 };

@@ -18,9 +18,10 @@ public class CategoryService {
         return categoryRepository.findByParentIsNull();
     }
 
-    public Category createCategory(String name, UUID parentId) {
+    public Category createCategory(String name, UUID parentId, UUID sellerId) {
         Category category = new Category();
         category.setName(name);
+        category.setSellerId(sellerId);
 
         if (parentId != null) {
             Category parent = categoryRepository.findById(parentId)

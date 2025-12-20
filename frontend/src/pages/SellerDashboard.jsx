@@ -26,8 +26,10 @@ import {
     Menu,
     X,
     Trash2,
-    Search
+    Search,
+    Layout // Added Layout icon
 } from 'lucide-react';
+import SellerHomepageControls from '../components/seller/SellerHomepageControls';
 
 const SellerDashboard = () => {
     const [inventoryData, setInventoryData] = useState(null);
@@ -145,6 +147,7 @@ const SellerDashboard = () => {
     const navItems = [
         { id: 'inventory', label: 'Inventory', icon: Package },
         { id: 'orders', label: 'Orders', icon: ShoppingBag },
+        { id: 'homepage', label: 'Home Page Controls', icon: Layout },
         { id: 'analytics', label: 'Analytics', icon: LayoutDashboard },
         { id: 'payments', label: 'Payments', icon: DollarSign },
         { id: 'messages', label: 'Messages', icon: MessageSquare },
@@ -570,6 +573,7 @@ const SellerDashboard = () => {
                     </div>
                 );
             case 'orders': return <SellerOrders />;
+            case 'homepage': return <SellerHomepageControls />;
             case 'analytics': return <SellerAnalytics />;
             case 'payments': return <SellerPayments />;
             case 'messages': return <SellerMessages />;
