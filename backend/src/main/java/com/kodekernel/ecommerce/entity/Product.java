@@ -1,13 +1,12 @@
 package com.kodekernel.ecommerce.entity;
 
-import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
+import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-
+import java.time.LocalDateTime;
+import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 @Entity
@@ -36,26 +35,29 @@ public class Product {
     private String image4;
     private String image5;
 
-    @jakarta.persistence.ElementCollection
-    private java.util.List<String> tags;
+    @ElementCollection
+    private List<String> tags;
 
     private String brand;
     private String sku;
     private String returnPolicy;
     private String warranty;
 
-    @jakarta.persistence.ElementCollection
-    @jakarta.persistence.CollectionTable(name = "product_specifications", joinColumns = @jakarta.persistence.JoinColumn(name = "product_id"))
-    @jakarta.persistence.MapKeyColumn(name = "spec_key")
-    @jakarta.persistence.Column(name = "spec_value")
-    private java.util.Map<String, String> specifications;
+    @ElementCollection
+    @CollectionTable(name = "product_specifications", joinColumns = @JoinColumn(name = "product_id"))
+    @MapKeyColumn(name = "spec_key")
+    @Column(name = "spec_value")
+    private Map<String, String> specifications;
 
-    private java.time.LocalDateTime createdAt;
+    private LocalDateTime createdAt;
 
-    @jakarta.persistence.PrePersist
+    @PrePersist
     protected void onCreate() {
         if (createdAt == null) {
-            createdAt = java.time.LocalDateTime.now();
+            createdAt = LocalDateTime.now();
         }
     }
+
+    @OneToOne(mappedBy = "product", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    private ProductMetric productMetric;
 }

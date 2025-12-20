@@ -8,12 +8,22 @@ import com.kodekernel.ecommerce.entity.*;
 import com.kodekernel.ecommerce.repository.OrderItemRepository;
 import com.kodekernel.ecommerce.repository.OrderRepository;
 import com.kodekernel.ecommerce.repository.AddressRepository;
+import com.kodekernel.ecommerce.repository.ProductRepository;
+import com.kodekernel.ecommerce.repository.UserRepository;
+import com.kodekernel.ecommerce.repository.OrderSpecification;
+import com.kodekernel.ecommerce.dto.OrderListResponseDTO;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Service;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.jpa.domain.Specification;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -33,24 +43,57 @@ public class OrderService {
     private AddressRepository addressRepo;
 
     @Autowired
-    private com.kodekernel.ecommerce.repository.ProductRepository productRepo;
+    private ProductRepository productRepo;
 
     @Autowired
-    private com.kodekernel.ecommerce.repository.UserRepository userRepo;
+    private UserRepository userRepo;
+
+    @Autowired
+    private ProductService productService;
 
     // STATUS TRANSITIONS
-    private static final Map<OrderStatus, List<OrderStatus>> allowedTransitions = java.util.Map.of(
+    private static final Map<OrderStatus, List<OrderStatus>> allowedTransitions = Map.of(
             OrderStatus.PENDING, List.of(OrderStatus.PROCESSING, OrderStatus.CANCELLED),
             OrderStatus.PROCESSING, List.of(OrderStatus.SHIPPED, OrderStatus.CANCELLED),
             OrderStatus.SHIPPED, List.of(OrderStatus.DELIVERED, OrderStatus.CANCELLED));
 
     // 1. LIST ALL ORDERS (SUMMARY TABLE)
-    public List<OrderSummaryDTO> getOrderSummary(UUID sellerId) {
-        List<Order> orders = orderRepo.findBySellerIdOrderByOrderDateDesc(sellerId);
+    public OrderListResponseDTO getOrderSummary(UUID sellerId, int page, int size,
+            String status, String search, String startDate, String endDate) {
+        Pageable pageable = PageRequest.of(page, size,
+                Sort.by(Sort.Direction.DESC,
+                        "orderDate"));
+
+        Specification<Order> spec = OrderSpecification
+                .hasSellerId(sellerId);
+
+        if (status != null && !status.isEmpty()) {
+            spec = spec.and(OrderSpecification.hasStatus(status));
+        }
+
+        if (search != null && !search.isEmpty()) {
+            spec = spec.and(OrderSpecification.search(search));
+        }
+
+        if ((startDate != null && !startDate.isEmpty()) || (endDate != null && !endDate.isEmpty())) {
+            LocalDate start = null;
+            LocalDate end = null;
+            try {
+                if (startDate != null && !startDate.isEmpty())
+                    start = LocalDate.parse(startDate);
+                if (endDate != null && !endDate.isEmpty())
+                    end = LocalDate.parse(endDate);
+            } catch (Exception e) {
+                // Ignore parsing errors
+            }
+            spec = spec.and(OrderSpecification.createdBetween(start, end));
+        }
+
+        Page<Order> ordersPage = orderRepo.findAll(spec, pageable);
 
         List<OrderSummaryDTO> summaries = new ArrayList<>();
 
-        for (Order o : orders) {
+        for (Order o : ordersPage.getContent()) {
             int itemCount = o.getItems().size();
 
             String itemsSummary = "";
@@ -77,7 +120,8 @@ public class OrderService {
                     image));
         }
 
-        return summaries;
+        return new OrderListResponseDTO(summaries, ordersPage.getTotalPages(),
+                ordersPage.getTotalElements());
     }
 
     // 2. ORDER DETAILS
@@ -142,54 +186,6 @@ public class OrderService {
         orderRepo.save(order);
     }
 
-    // public List<OrderDTO> getOrders(UUID sellerId) {
-    // List<Order> orders = orderRepository.findBySellerId(sellerId);
-    // return orders.stream().map(this::convertToDTO).collect(Collectors.toList());
-    // }
-
-    // public OrderDTO updateOrderStatus(UUID orderId, OrderStatus status) {
-    // Order order = orderRepository.findById(orderId)
-    // .orElseThrow(() -> new RuntimeException("Order not found"));
-    // order.setStatus(status);
-    // Order updatedOrder = orderRepository.save(order);
-    // return convertToDTO(updatedOrder);
-    // }
-
-    // private OrderDTO convertToDTO(Order order) {
-    // List<OrderItemDTO> itemDTOs = order.getItems().stream()
-    // .map(item -> new OrderItemDTO(
-    // item.getProduct().getId(),
-    // item.getProduct().getName(),
-    // item.getQuantity(),
-    // item.getPrice()))
-    // .collect(Collectors.toList());
-
-    // AddressDTO addressDTO = null;
-    // if (order.getShippingAddress() != null) {
-    // addressDTO = convertToAddressDTO(order.getShippingAddress());
-    // }
-
-    // return new OrderDTO(
-    // order.getId(),
-    // order.getCustomer() != null ? order.getCustomer().getId() : null,
-    // order.getOrderDate(),
-    // itemDTOs,
-    // order.getTotalAmount(),
-    // order.getStatus(),
-    // addressDTO);
-    // }
-
-    // private AddressDTO convertToAddressDTO(Address address) {
-    // return new AddressDTO(
-    // address.getId(),
-    // address.getFullName(),
-    // address.getPhone(),
-    // address.getLine1(),
-    // address.getLine2(),
-    // address.getCity(),
-    // address.getState(),
-    // address.getPincode());
-    // }
     public void createDummyOrders(UUID sellerId) {
         // 1. Get Seller's Products
         List<Product> products = productRepo.findBySellerId(sellerId);
@@ -213,8 +209,9 @@ public class OrderService {
         for (int i = 0; i < 5; i++) {
             Order order = new Order();
             order.setCustomer(customer);
+            order.setCustomer(customer);
             order.setSellerId(sellerId);
-            order.setOrderDate(java.time.LocalDate.now().minusDays((long) (Math.random() * 10)));
+            order.setOrderDate(LocalDate.now().minusDays((long) (Math.random() * 10)));
             order.setStatus(OrderStatus.values()[(int) (Math.random() * OrderStatus.values().length)]);
             order.setPaymentMethod("Credit Card");
             order.setShippingMethod("Standard Shipping");
@@ -253,6 +250,7 @@ public class OrderService {
             }
 
             itemRepo.saveAll(items);
+            productService.updateSalesMetrics(items);
 
             order.setTotalAmount(total);
             order.setItems(items);

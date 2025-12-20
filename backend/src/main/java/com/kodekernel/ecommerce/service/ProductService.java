@@ -4,10 +4,24 @@ import com.kodekernel.ecommerce.dto.InventoryResponseDTO;
 import com.kodekernel.ecommerce.dto.ProductDTO;
 import com.kodekernel.ecommerce.entity.Product;
 import com.kodekernel.ecommerce.repository.ProductRepository;
+import com.kodekernel.ecommerce.repository.ProductSpecification;
+import com.kodekernel.ecommerce.repository.ProductMetricRepository;
+import com.kodekernel.ecommerce.entity.ProductMetric;
+import com.kodekernel.ecommerce.entity.OrderItem;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.jpa.domain.Specification;
 
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -18,48 +32,50 @@ public class ProductService {
     @Autowired
     private ProductRepository productRepository;
 
+    @Autowired
+    private ProductMetricRepository metricRepository;
+
     public InventoryResponseDTO getInventory(UUID sellerId, int page, int size, String search, String category,
             Double minPrice, Double maxPrice, String stockStatus, String startDate, String endDate) {
 
-        java.time.LocalDateTime start = null;
-        java.time.LocalDateTime end = null;
+        LocalDateTime start = null;
+        LocalDateTime end = null;
 
         if (startDate != null && !startDate.isEmpty()) {
-            start = java.time.LocalDate.parse(startDate).atStartOfDay();
+            start = LocalDate.parse(startDate).atStartOfDay();
         }
         if (endDate != null && !endDate.isEmpty()) {
-            end = java.time.LocalDate.parse(endDate).atTime(java.time.LocalTime.MAX);
+            end = LocalDate.parse(endDate).atTime(LocalTime.MAX);
         }
 
-        org.springframework.data.jpa.domain.Specification<Product> spec = org.springframework.data.jpa.domain.Specification
-                .where(com.kodekernel.ecommerce.repository.ProductSpecification.hasSellerId(sellerId));
+        Specification<Product> spec = Specification
+                .where(ProductSpecification.hasSellerId(sellerId));
 
         if (search != null && !search.isEmpty()) {
-            spec = spec.and(com.kodekernel.ecommerce.repository.ProductSpecification.containsText(search));
+            spec = spec.and(ProductSpecification.containsText(search));
         }
-        if (category != null && !category.isEmpty()) {
-            spec = spec.and(com.kodekernel.ecommerce.repository.ProductSpecification.hasCategory(category));
+        if (category != null && !category.isEmpty() && !"All Categories".equals(category)) {
+            spec = spec.and(ProductSpecification.hasCategory(category));
         }
         if (minPrice != null || maxPrice != null) {
-            spec = spec.and(com.kodekernel.ecommerce.repository.ProductSpecification.priceBetween(minPrice, maxPrice));
+            spec = spec.and(ProductSpecification.priceBetween(minPrice, maxPrice));
         }
         if ("low_stock".equals(stockStatus)) {
-            spec = spec.and(com.kodekernel.ecommerce.repository.ProductSpecification.isLowStock(true));
+            spec = spec.and(ProductSpecification.isLowStock(true));
         } else if ("out_of_stock".equals(stockStatus)) {
-            spec = spec.and(com.kodekernel.ecommerce.repository.ProductSpecification.isOutOfStock(true));
+            spec = spec.and(ProductSpecification.isOutOfStock(true));
         } else if ("in_stock".equals(stockStatus)) {
-            // In stock logic can be quantity > 0 or specific threshold. For now assuming >
-            // 0
             spec = spec.and((root, query, cb) -> cb.greaterThan(root.get("quantity"), 0));
         }
 
         if (start != null || end != null) {
-            spec = spec.and(com.kodekernel.ecommerce.repository.ProductSpecification.createdBetween(start, end));
+            spec = spec.and(ProductSpecification.createdBetween(start, end));
         }
 
-        org.springframework.data.domain.Pageable pageable = org.springframework.data.domain.PageRequest.of(page, size);
-        org.springframework.data.domain.Page<Product> productsPage = productRepository.findAll(spec, pageable);
-
+        Pageable pageable = PageRequest.of(page, size,
+                Sort.by(Sort.Direction.DESC,
+                        "createdAt")); // Ensure sorted by date
+        Page<Product> productsPage = productRepository.findAll(spec, pageable);
         List<ProductDTO> productDTOs = productsPage.stream().map(this::convertToDTO).collect(Collectors.toList());
 
         // Calculate dynamic stats based on the same filter spec
@@ -92,7 +108,7 @@ public class ProductService {
     private S3Service s3Service;
 
     public ProductDTO listNewProduct(UUID sellerId, ProductDTO productDTO, List<MultipartFile> images) {
-        List<String> imageUrls = new java.util.ArrayList<>();
+        List<String> imageUrls = new ArrayList<>();
         if (images != null && !images.isEmpty()) {
             for (MultipartFile image : images) {
                 if (!image.isEmpty()) {
@@ -106,13 +122,11 @@ public class ProductService {
             productDTO.setImage(imageUrls.get(0));
         }
 
-        // Default active status to true for new products if not specified
         if (productDTO.getActive() == null) {
             productDTO.setActive(true);
         }
 
         Product product = convertToEntity(productDTO);
-        // Explicitly set images from the list we just created
         setProductImagesFromList(product, imageUrls);
 
         product.setSellerId(sellerId);
@@ -144,8 +158,8 @@ public class ProductService {
             product.setActive(productDTO.getActive());
         }
 
-        List<String> finalImageUrls = new java.util.ArrayList<>();
-        List<String> newUploadedUrls = new java.util.ArrayList<>();
+        List<String> finalImageUrls = new ArrayList<>();
+        List<String> newUploadedUrls = new ArrayList<>();
 
         // 1. Upload new images if any
         if (images != null && !images.isEmpty()) {
@@ -266,7 +280,7 @@ public class ProductService {
     }
 
     private List<String> getProductImagesAsList(Product product) {
-        List<String> images = new java.util.ArrayList<>();
+        List<String> images = new ArrayList<>();
         if (product.getImage1() != null)
             images.add(product.getImage1());
         if (product.getImage2() != null)
@@ -278,5 +292,61 @@ public class ProductService {
         if (product.getImage5() != null)
             images.add(product.getImage5());
         return images;
+    }
+
+    public void incrementViewCount(UUID productId) {
+        Product product = productRepository.findById(productId)
+                .orElseThrow(() -> new RuntimeException("Product not found"));
+
+        ProductMetric metric = metricRepository.findByProductId(productId)
+                .orElse(new ProductMetric());
+
+        if (metric.getProduct() == null) {
+            metric.setProduct(product);
+        }
+
+        metric.setDailyViews(metric.getDailyViews() + 1);
+        metric.setWeeklyViews(metric.getWeeklyViews() + 1);
+        metric.setTotalViews(metric.getTotalViews() + 1);
+        metricRepository.save(metric);
+    }
+
+    public void updateSalesMetrics(List<OrderItem> items) {
+        for (OrderItem item : items) {
+            Product product = item.getProduct();
+            ProductMetric metric = metricRepository.findByProductId(product.getId())
+                    .orElse(new ProductMetric());
+
+            if (metric.getProduct() == null) {
+                metric.setProduct(product);
+            }
+
+            int qty = item.getQuantity();
+            metric.setDailySales(metric.getDailySales() + qty);
+            metric.setWeeklySales(metric.getWeeklySales() + qty);
+            metric.setTotalSales(metric.getTotalSales() + qty);
+
+            metricRepository.save(metric);
+        }
+    }
+
+    public List<ProductDTO> getTrendingProducts() {
+        return productRepository.findTrendingProducts(PageRequest.of(0, 5))
+                .stream().map(this::convertToDTO).collect(Collectors.toList());
+    }
+
+    public List<ProductDTO> getBestSellers() {
+        return productRepository.findBestSellers(PageRequest.of(0, 5))
+                .stream().map(this::convertToDTO).collect(Collectors.toList());
+    }
+
+    public List<ProductDTO> getTopDeals() {
+        return productRepository.findTopDeals(PageRequest.of(0, 5))
+                .stream().map(this::convertToDTO).collect(Collectors.toList());
+    }
+
+    public List<ProductDTO> getFeaturedProducts() {
+        return productRepository.findFeaturedProducts(PageRequest.of(0, 5))
+                .stream().map(this::convertToDTO).collect(Collectors.toList());
     }
 }

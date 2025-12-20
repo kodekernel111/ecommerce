@@ -38,6 +38,9 @@ const SellerDashboard = () => {
     // Pagination State
     const [currentPage, setCurrentPage] = useState(0);
     const [totalPages, setTotalPages] = useState(0);
+    const [totalElements, setTotalElements] = useState(0);
+    const [totalValue, setTotalValue] = useState(0);
+    const [lowStockCount, setLowStockCount] = useState(0); // For alert
     const pageSize = 10;
 
     // Filter State
@@ -88,11 +91,11 @@ const SellerDashboard = () => {
                 if (filterEndDate) params.append('endDate', filterEndDate);
 
                 const response = await api.get(`/seller/inventory?${params.toString()}`);
-                setInventoryData(response.data.products);
-                setTotalPages(response.data.totalPages);
-                setTotalElements(response.data.totalElements);
-                setTotalValue(response.data.totalValue);
-                setLowStockCount(response.data.lowStockProducts.length);
+                setInventoryData(response.data.listedProducts || []);
+                setTotalPages(response.data.totalPages || 0);
+                setTotalElements(response.data.totalElements || 0);
+                setTotalValue(response.data.listingValue || 0);
+                setLowStockCount(response.data.lowCountProducts?.length || 0);
             } catch (error) {
                 console.error("Failed to fetch inventory", error);
             } finally {
@@ -135,11 +138,9 @@ const SellerDashboard = () => {
     };
 
     // Calculate Stats
-    // Note: totalElements should come from backend for accurate total count across pages
-    const totalProducts = inventoryData?.totalElements || inventoryData?.listedProducts?.length || 0;
-    const totalValue = inventoryData?.listingValue || 0;
-    const lowStockCount = inventoryData?.lowCountProducts?.length || 0;
-    const products = inventoryData?.listedProducts || [];
+    // Stats are now in state
+    const totalProducts = totalElements;
+    const products = inventoryData || [];
 
     const navItems = [
         { id: 'inventory', label: 'Inventory', icon: Package },
@@ -231,111 +232,9 @@ const SellerDashboard = () => {
                                     </div>
 
                                     {/* Filters */}
-                                    <div className="bg-white p-6 rounded-lg border border-gray-200 shadow-sm mt-4">
-                                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                                            {/* Search */}
-                                            <div className="col-span-1 lg:col-span-4">
-                                                <div className="relative rounded-md shadow-sm">
-                                                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                                        <Search className="h-5 w-5 text-gray-400" aria-hidden="true" />
-                                                    </div>
-                                                    <input
-                                                        type="text"
-                                                        id="search"
-                                                        placeholder="Search by Name, Brand, or SKU"
-                                                        value={filterSearch}
-                                                        onChange={(e) => setFilterSearch(e.target.value)}
-                                                        className="focus:ring-indigo-500 focus:border-indigo-500 block w-full pl-10 sm:text-sm border-gray-300 rounded-md py-2"
-                                                    />
-                                                </div>
-                                            </div>
-
-                                            {/* Category */}
-                                            <div>
-                                                <label htmlFor="category" className="block text-xs font-medium text-gray-500 uppercase tracking-wider mb-1">Category</label>
-                                                <select
-                                                    id="category"
-                                                    value={filterCategory}
-                                                    onChange={(e) => setFilterCategory(e.target.value)}
-                                                    className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md"
-                                                >
-                                                    <option value="">All Categories</option>
-                                                    {/* Assuming categories are strings, if object adjust map */}
-                                                    {categories.map((cat) => (
-                                                        <option key={cat.id || cat} value={cat.name || cat}>{cat.name || cat}</option>
-                                                    ))}
-                                                </select>
-                                            </div>
-
-                                            {/* Stock Status */}
-                                            <div>
-                                                <label htmlFor="stockStatus" className="block text-xs font-medium text-gray-500 uppercase tracking-wider mb-1">Stock Status</label>
-                                                <select
-                                                    id="stockStatus"
-                                                    value={filterStockStatus}
-                                                    onChange={(e) => setFilterStockStatus(e.target.value)}
-                                                    className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md"
-                                                >
-                                                    <option value="">All Statuses</option>
-                                                    <option value="in_stock">In Stock</option>
-                                                    <option value="low_stock">Low Stock</option>
-                                                    <option value="out_of_stock">Out of Stock</option>
-                                                </select>
-                                            </div>
-
-                                            {/* Date Range */}
-                                            <div className="col-span-1 lg:col-span-2">
-                                                <label className="block text-xs font-medium text-gray-500 uppercase tracking-wider mb-1">Listing Date</label>
-                                                <div className="flex items-center space-x-2">
-                                                    <input
-                                                        type="date"
-                                                        value={filterStartDate}
-                                                        onChange={(e) => setFilterStartDate(e.target.value)}
-                                                        className="block w-full shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm border-gray-300 rounded-md"
-                                                    />
-                                                    <span className="text-gray-500">-</span>
-                                                    <input
-                                                        type="date"
-                                                        value={filterEndDate}
-                                                        onChange={(e) => setFilterEndDate(e.target.value)}
-                                                        className="block w-full shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm border-gray-300 rounded-md"
-                                                    />
-                                                </div>
-                                            </div>
-
-                                            {/* Price Range */}
-                                            <div className="col-span-1 md:col-span-2 lg:col-span-2">
-                                                <label className="block text-xs font-medium text-gray-500 uppercase tracking-wider mb-1">Price Range</label>
-                                                <div className="flex space-x-2 items-center">
-                                                    <div className="relative rounded-md shadow-sm w-full">
-                                                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                                            <span className="text-gray-500 sm:text-sm">$</span>
-                                                        </div>
-                                                        <input
-                                                            type="number"
-                                                            placeholder="Min"
-                                                            value={filterMinPrice}
-                                                            onChange={(e) => setFilterMinPrice(e.target.value)}
-                                                            className="focus:ring-indigo-500 focus:border-indigo-500 block w-full pl-7 sm:text-sm border-gray-300 rounded-md"
-                                                        />
-                                                    </div>
-                                                    <span className="text-gray-500">-</span>
-                                                    <div className="relative rounded-md shadow-sm w-full">
-                                                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                                            <span className="text-gray-500 sm:text-sm">$</span>
-                                                        </div>
-                                                        <input
-                                                            type="number"
-                                                            placeholder="Max"
-                                                            value={filterMaxPrice}
-                                                            onChange={(e) => setFilterMaxPrice(e.target.value)}
-                                                            className="focus:ring-indigo-500 focus:border-indigo-500 block w-full pl-7 sm:text-sm border-gray-300 rounded-md"
-                                                        />
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
-                                        <div className="mt-6 flex justify-end border-t border-gray-100 pt-4">
+                                    <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-5 mt-4">
+                                        <div className="flex flex-col md:flex-row md:items-center justify-between mb-4">
+                                            <h3 className="text-lg font-semibold text-gray-900">Filter Inventory</h3>
                                             <button
                                                 onClick={() => {
                                                     setFilterSearch('');
@@ -346,10 +245,122 @@ const SellerDashboard = () => {
                                                     setFilterStartDate('');
                                                     setFilterEndDate('');
                                                 }}
-                                                className="inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                                                className="text-sm text-indigo-600 hover:text-indigo-800 font-medium hover:underline transition-colors mt-2 md:mt-0"
                                             >
-                                                Reset Filters
+                                                Clear all filters
                                             </button>
+                                        </div>
+
+                                        <div className="grid grid-cols-1 md:grid-cols-12 gap-4">
+                                            {/* Search */}
+                                            <div className="md:col-span-12 lg:col-span-5 relative">
+                                                <label htmlFor="search" className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5">Search</label>
+                                                <div className="relative group">
+                                                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                                        <Search className="h-4 w-4 text-gray-400 group-focus-within:text-indigo-500 transition-colors" aria-hidden="true" />
+                                                    </div>
+                                                    <input
+                                                        type="text"
+                                                        id="search"
+                                                        placeholder="Search by Name, Brand, or SKU"
+                                                        value={filterSearch}
+                                                        onChange={(e) => setFilterSearch(e.target.value)}
+                                                        className="block w-full pl-10 pr-3 py-2 text-sm border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 transition-shadow shadow-sm hover:border-gray-400"
+                                                    />
+                                                </div>
+                                            </div>
+
+                                            {/* Category */}
+                                            <div className="md:col-span-6 lg:col-span-3">
+                                                <label htmlFor="category" className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5">Category</label>
+                                                <div className="relative">
+                                                    <select
+                                                        id="category"
+                                                        value={filterCategory}
+                                                        onChange={(e) => setFilterCategory(e.target.value)}
+                                                        className="block w-full pl-3 pr-10 py-2 text-sm border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 shadow-sm hover:border-gray-400 transition-all appearance-none bg-no-repeat bg-right"
+                                                        style={{ backgroundImage: `url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e")`, backgroundPosition: `right 0.5rem center`, backgroundSize: `1.5em 1.5em` }}
+                                                    >
+                                                        <option value="">All Categories</option>
+                                                        {categories.map((cat) => (
+                                                            <option key={cat.id || cat} value={cat.name || cat}>{cat.name || cat}</option>
+                                                        ))}
+                                                    </select>
+                                                </div>
+                                            </div>
+
+                                            {/* Stock Status */}
+                                            <div className="md:col-span-6 lg:col-span-4">
+                                                <label htmlFor="stockStatus" className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5">Stock Status</label>
+                                                <div className="relative">
+                                                    <select
+                                                        id="stockStatus"
+                                                        value={filterStockStatus}
+                                                        onChange={(e) => setFilterStockStatus(e.target.value)}
+                                                        className="block w-full pl-3 pr-10 py-2 text-sm border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 shadow-sm hover:border-gray-400 transition-all appearance-none bg-no-repeat bg-right"
+                                                        style={{ backgroundImage: `url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e")`, backgroundPosition: `right 0.5rem center`, backgroundSize: `1.5em 1.5em` }}
+                                                    >
+                                                        <option value="">All Statuses</option>
+                                                        <option value="in_stock">In Stock</option>
+                                                        <option value="low_stock">Low Stock</option>
+                                                        <option value="out_of_stock">Out of Stock</option>
+                                                    </select>
+                                                </div>
+                                            </div>
+
+                                            {/* Listing Date */}
+                                            <div className="md:col-span-6 lg:col-span-6 grid grid-cols-2 gap-3">
+                                                <div>
+                                                    <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5">From</label>
+                                                    <input
+                                                        type="date"
+                                                        value={filterStartDate}
+                                                        onChange={(e) => setFilterStartDate(e.target.value)}
+                                                        className="block w-full px-3 py-2 text-sm border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 shadow-sm hover:border-gray-400 transition-shadow"
+                                                    />
+                                                </div>
+                                                <div>
+                                                    <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5">To</label>
+                                                    <input
+                                                        type="date"
+                                                        value={filterEndDate}
+                                                        onChange={(e) => setFilterEndDate(e.target.value)}
+                                                        className="block w-full px-3 py-2 text-sm border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 shadow-sm hover:border-gray-400 transition-shadow"
+                                                    />
+                                                </div>
+                                            </div>
+
+                                            {/* Price Range */}
+                                            <div className="md:col-span-6 lg:col-span-6">
+                                                <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5">Price Range</label>
+                                                <div className="flex items-center space-x-2">
+                                                    <div className="relative w-full">
+                                                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                                            <span className="text-gray-500 sm:text-sm">$</span>
+                                                        </div>
+                                                        <input
+                                                            type="number"
+                                                            placeholder="Min"
+                                                            value={filterMinPrice}
+                                                            onChange={(e) => setFilterMinPrice(e.target.value)}
+                                                            className="block w-full pl-7 pr-3 py-2 text-sm border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 shadow-sm hover:border-gray-400 transition-shadow"
+                                                        />
+                                                    </div>
+                                                    <span className="text-gray-400 font-medium">-</span>
+                                                    <div className="relative w-full">
+                                                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                                            <span className="text-gray-500 sm:text-sm">$</span>
+                                                        </div>
+                                                        <input
+                                                            type="number"
+                                                            placeholder="Max"
+                                                            value={filterMaxPrice}
+                                                            onChange={(e) => setFilterMaxPrice(e.target.value)}
+                                                            className="block w-full pl-7 pr-3 py-2 text-sm border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 shadow-sm hover:border-gray-400 transition-shadow"
+                                                        />
+                                                    </div>
+                                                </div>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>

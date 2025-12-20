@@ -4,6 +4,7 @@ import com.kodekernel.ecommerce.dto.InventoryResponseDTO;
 import com.kodekernel.ecommerce.dto.ProductDTO;
 
 import com.kodekernel.ecommerce.dto.OrderDetailDTO;
+import com.kodekernel.ecommerce.dto.OrderListResponseDTO;
 import com.kodekernel.ecommerce.dto.OrderSummaryDTO;
 import com.kodekernel.ecommerce.entity.Coupon;
 import com.kodekernel.ecommerce.entity.OrderStatus;
@@ -27,6 +28,12 @@ public class SellerController {
 
     @Autowired
     private ProductService productService;
+
+    @Autowired
+    private CouponService couponService;
+
+    @Autowired
+    private OrderService orderService;
 
     @GetMapping("/inventory")
     public ResponseEntity<InventoryResponseDTO> getInventory(
@@ -78,12 +85,16 @@ public class SellerController {
         return ResponseEntity.ok(Map.of("message", "Dummy orders created successfully"));
     }
 
-    @Autowired
-    private OrderService orderService;
-
     @GetMapping("/orders")
-    public List<OrderSummaryDTO> listOrders(@RequestParam(required = true) UUID sellerId) {
-        return orderService.getOrderSummary(sellerId);
+    public OrderListResponseDTO listOrders(
+            @RequestParam(required = true) UUID sellerId,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(required = false) String status,
+            @RequestParam(required = false) String search,
+            @RequestParam(required = false) String startDate,
+            @RequestParam(required = false) String endDate) {
+        return orderService.getOrderSummary(sellerId, page, size, status, search, startDate, endDate);
     }
 
     @GetMapping("/{orderId}")
@@ -96,24 +107,6 @@ public class SellerController {
         orderService.updateOrderStatus(orderId, OrderStatus.valueOf(status));
         return "Updated to " + status;
     }
-
-    // @GetMapping("/orders")
-    // public ResponseEntity<List<OrderDTO>> getOrders(
-    // @RequestParam(required = false) UUID sellerId) {
-    // if (sellerId == null) {
-    // return ResponseEntity.badRequest().build();
-    // }
-    // return ResponseEntity.ok(orderService.getOrders(sellerId));
-    // }
-
-    // @PutMapping("/change-order-status/{orderId}")
-    // public ResponseEntity<OrderDTO> changeOrderStatus(@PathVariable UUID orderId,
-    // @RequestBody OrderStatus status) {
-    // return ResponseEntity.ok(orderService.updateOrderStatus(orderId, status));
-    // }
-
-    @Autowired
-    private CouponService couponService;
 
     @GetMapping("/coupons")
     public List<Coupon> listCoupons() {

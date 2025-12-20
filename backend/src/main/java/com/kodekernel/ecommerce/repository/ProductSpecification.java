@@ -4,6 +4,7 @@ import com.kodekernel.ecommerce.entity.Product;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.util.StringUtils;
 
+import java.time.LocalDateTime;
 import java.util.UUID;
 
 public class ProductSpecification {
@@ -71,8 +72,8 @@ public class ProductSpecification {
         };
     }
 
-    public static Specification<Product> createdBetween(java.time.LocalDateTime startDate,
-            java.time.LocalDateTime endDate) {
+    public static Specification<Product> createdBetween(LocalDateTime startDate,
+            LocalDateTime endDate) {
         return (root, query, cb) -> {
             if (startDate == null && endDate == null)
                 return null;
