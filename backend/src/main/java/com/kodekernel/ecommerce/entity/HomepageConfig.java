@@ -48,4 +48,12 @@ public class HomepageConfig {
     @ToString.Exclude
     @EqualsAndHashCode.Exclude
     private List<FeaturedSection> featuredSections = new ArrayList<>();
+
+    // Top Deals Section
+    @OneToMany(mappedBy = "homepageConfig", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.EAGER)
+    @JsonManagedReference
+    @Builder.Default
+    @ToString.Exclude
+    @EqualsAndHashCode.Exclude
+    private List<TopDeal> topDeals = new ArrayList<>();
 }

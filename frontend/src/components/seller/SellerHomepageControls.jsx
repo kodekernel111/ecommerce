@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Save, Layout, Image, Type, Eye, Layers, Upload, Plus, Trash2, ChevronDown, ChevronUp, X } from 'lucide-react';
+import { Save, Tag, Layout, Image, Type, Eye, Layers, Upload, Plus, Trash2, ChevronDown, ChevronUp, ChevronLeft, ChevronRight, X } from 'lucide-react';
 import api from '../../api/axios';
 
 const SellerHomepageControls = () => {
@@ -19,9 +19,15 @@ const SellerHomepageControls = () => {
         { id: 'trending', label: 'Trending Products', enabled: true },
         { id: 'bestsellers', label: 'Best Sellers', enabled: true },
         { id: 'topdeals', label: 'Top Deals', enabled: true },
-        { id: 'newarrivals', label: 'New Arrivals', enabled: false },
+        { id: 'newarrivals', label: 'New Arrivals', enabled: true },
         { id: 'featured', label: 'Featured Collections', enabled: true }
     ]);
+
+    // Top Deals Config
+    const [topDeals, setTopDeals] = useState([]);
+    // Pagination State
+    const [topDealsPage, setTopDealsPage] = useState(1);
+    const [topDealsPerPage, setTopDealsPerPage] = useState(5);
 
     // Existing Featured Sections
     const [existingSections, setExistingSections] = useState([]);
@@ -85,6 +91,18 @@ const SellerHomepageControls = () => {
                             cards: ensureFourCards(sec.cards)
                         })));
                     }
+
+                    if (config.topDeals) {
+                        setTopDeals(config.topDeals.map(d => ({
+                            id: d.id,
+                            displayTitle: d.displayTitle || '',
+                            imageUrl: d.imageUrl || '',
+                            offer: d.offer || '',
+                            mainCategoryId: d.mainCategoryId || '',
+                            subCategoryId: d.subCategoryId || '',
+                            active: d.active !== undefined ? d.active : true
+                        })));
+                    }
                 }
             } catch (error) {
                 console.error("Error loading homepage config", error);
@@ -111,6 +129,22 @@ const SellerHomepageControls = () => {
     const triggerUpload = (target) => {
         setUploadTarget(target);
         fileInputRef.current?.click();
+    };
+
+    const handleTopDealChange = (index, field, value) => {
+        setTopDeals(prev => {
+            const deals = [...prev];
+            deals[index] = { ...deals[index], [field]: value };
+            return deals;
+        });
+    };
+
+    const addTopDeal = () => {
+        setTopDeals([...topDeals, { displayTitle: '', imageUrl: '', offer: '', mainCategoryId: '', subCategoryId: '', active: true }]);
+    };
+
+    const removeTopDeal = (index) => {
+        setTopDeals(prev => prev.filter((_, i) => i !== index));
     };
 
     const handleFileChange = async (e) => {
@@ -148,6 +182,12 @@ const SellerHomepageControls = () => {
                     section.cards = cards;
                     sections[uploadTarget.sectionIndex] = section;
                     return sections;
+                });
+            } else if (uploadTarget.type === 'top_deal') {
+                setTopDeals(prev => {
+                    const deals = [...prev];
+                    deals[uploadTarget.index] = { ...deals[uploadTarget.index], imageUrl: url };
+                    return deals;
                 });
             }
         } catch (error) {
@@ -254,6 +294,16 @@ const SellerHomepageControls = () => {
                     offer: c.offer,
                     active: c.active !== undefined ? c.active : true
                 }))
+            })),
+
+            topDeals: topDeals.map(d => ({
+                id: d.id, // Include ID if updating
+                displayTitle: d.displayTitle,
+                imageUrl: d.imageUrl,
+                offer: d.offer,
+                mainCategoryId: d.mainCategoryId || null,
+                subCategoryId: d.subCategoryId || null,
+                active: d.active
             }))
         };
     };
@@ -280,6 +330,18 @@ const SellerHomepageControls = () => {
                     subtext: s.subtext || '',
                     buttonText: s.buttonText || '',
                     imageUrl: s.imageUrl || ''
+                })));
+            }
+
+            if (res.data.topDeals) {
+                setTopDeals(res.data.topDeals.map(d => ({
+                    id: d.id,
+                    displayTitle: d.displayTitle || '',
+                    imageUrl: d.imageUrl || '',
+                    offer: d.offer || '',
+                    mainCategoryId: d.mainCategoryId || '',
+                    subCategoryId: d.subCategoryId || '',
+                    active: d.active !== undefined ? d.active : true
                 })));
             }
 
@@ -343,6 +405,12 @@ const SellerHomepageControls = () => {
                 alert("Please select a Main Category first.");
                 return;
             }
+        } else if (context === 'top_deal_sub') {
+            parentId = topDeals[cardIndex].mainCategoryId;
+            if (!parentId) {
+                alert("Please select a Main Category first.");
+                return;
+            }
         }
 
         setParentCategoryForCreation(parentId);
@@ -357,6 +425,12 @@ const SellerHomepageControls = () => {
         if (context === 'main') {
             if (type === 'new') handleNewSectionChange('mainCategoryId', value);
             else handleExistingSectionUpdate(sectionIndex, 'mainCategoryId', value);
+        } else if (context === 'top_deal_main') {
+            handleTopDealChange(cardIndex, 'mainCategoryId', value);
+            // reset sub category when main changes
+            handleTopDealChange(cardIndex, 'subCategoryId', '');
+        } else if (context === 'top_deal_sub') {
+            handleTopDealChange(cardIndex, 'subCategoryId', value);
         } else {
             if (type === 'new') handleNewSectionCardChange(cardIndex, 'subCategoryId', value);
             else handleExistingCardUpdate(sectionIndex, cardIndex, 'subCategoryId', value);
@@ -381,9 +455,13 @@ const SellerHomepageControls = () => {
                 if (context === 'main') {
                     if (type === 'new') handleNewSectionChange('mainCategoryId', newCat.id);
                     else handleExistingSectionUpdate(sectionIndex, 'mainCategoryId', newCat.id);
-                } else {
                     if (type === 'new') handleNewSectionCardChange(cardIndex, 'subCategoryId', newCat.id);
                     else handleExistingCardUpdate(sectionIndex, cardIndex, 'subCategoryId', newCat.id);
+                } else if (context === 'top_deal_main') {
+                    handleTopDealChange(cardIndex, 'mainCategoryId', newCat.id);
+                    handleTopDealChange(cardIndex, 'subCategoryId', '');
+                } else if (context === 'top_deal_sub') {
+                    handleTopDealChange(cardIndex, 'subCategoryId', newCat.id);
                 }
             }
 
@@ -410,9 +488,9 @@ const SellerHomepageControls = () => {
                     <div className="text-xs font-bold text-gray-400 uppercase">Card {index + 1}</div>
                     <button
                         onClick={() => handleChange('active', !card.active)}
-                        className={`relative inline-flex h-5 w-9 border-2 border-transparent rounded-full transition-colors focus:outline-none ${card.active ? 'bg-indigo-600' : 'bg-gray-300'}`}
+                        className={`relative inline-flex h-5 w-9 border-2 border-transparent rounded-full transition-colors focus:outline-none ${card.active ? 'bg-indigo-600' : 'bg-gray-300'} `}
                     >
-                        <span className={`inline-block h-4 w-4 rounded-full bg-white transform ring-0 transition-transform ${card.active ? 'translate-x-4' : 'translate-x-0'}`} />
+                        <span className={`inline-block h-4 w-4 rounded-full bg-white transform ring-0 transition-transform ${card.active ? 'translate-x-4' : 'translate-x-0'} `} />
                     </button>
                 </div>
 
@@ -519,7 +597,7 @@ const SellerHomepageControls = () => {
                             <div
                                 key={index}
                                 onClick={() => setActiveSlideIndex(index)}
-                                className={`px-4 py-2 text-sm font-medium border-b-2 cursor-pointer transition-colors flex items-center gap-2 ${activeSlideIndex === index ? 'border-indigo-600 text-indigo-600' : 'border-transparent text-gray-500 hover:text-gray-700'}`}
+                                className={`px-4 py-2 text-sm font-medium border-b-2 cursor-pointer transition-colors flex items-center gap-2 ${activeSlideIndex === index ? 'border-indigo-600 text-indigo-600' : 'border-transparent text-gray-500 hover:text-gray-700'} `}
                             >
                                 Slide {index + 1}
                                 {heroSlides.length > 1 && (
@@ -591,13 +669,248 @@ const SellerHomepageControls = () => {
                         {sectionsVisibility.map(section => (
                             <div key={section.id} className="p-4 flex items-center justify-between hover:bg-gray-50">
                                 <span className="text-sm font-medium text-gray-900">{section.label}</span>
-                                <button onClick={() => toggleSectionVisibility(section.id)} className={`relative inline-flex h-6 w-11 border-2 border-transparent rounded-full ${section.enabled ? 'bg-indigo-600' : 'bg-gray-200'}`}>
-                                    <span className={`inline-block h-5 w-5 rounded-full bg-white transform ring-0 transition ${section.enabled ? 'translate-x-5' : 'translate-x-0'}`} />
+                                <button onClick={() => toggleSectionVisibility(section.id)} className={`relative inline-flex h-6 w-11 border-2 border-transparent rounded-full ${section.enabled ? 'bg-indigo-600' : 'bg-gray-200'} `}>
+                                    <span className={`inline-block h-5 w-5 rounded-full bg-white transform ring-0 transition ${section.enabled ? 'translate-x-5' : 'translate-x-0'} `} />
                                 </button>
                             </div>
                         ))}
                     </div>
                 </div>
+                {/* Top Deals Config */}
+                <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden col-span-1 lg:col-span-2">
+                    <div className="p-6 border-b border-gray-100 bg-gray-50 flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                            <div className="bg-indigo-100 p-2 rounded-lg">
+                                <Tag className="h-5 w-5 text-indigo-600" />
+                            </div>
+                            <div>
+                                <h3 className="font-bold text-gray-900 text-lg">Top Deals Configuration</h3>
+                                <p className="text-sm text-gray-500">Manage the featured deals displayed on your homepage</p>
+                            </div>
+                        </div>
+                        <span className="bg-indigo-50 text-indigo-700 px-3 py-1 rounded-full text-xs font-bold ring-1 ring-indigo-200">
+                            {topDeals.length} Active Deals
+                        </span>
+                    </div>
+
+                    <div className="p-6 bg-gray-50/50">
+                        {/* Pagination Controls */}
+                        <div className="flex flex-col sm:flex-row justify-between items-center mb-6 gap-4">
+                            <div className="flex items-center gap-2">
+                                <span className="text-sm text-gray-500">Show</span>
+                                <select
+                                    value={topDealsPerPage}
+                                    onChange={(e) => { setTopDealsPerPage(Number(e.target.value)); setTopDealsPage(1); }}
+                                    className="border-gray-300 rounded-md text-sm py-1 pl-2 pr-8 focus:ring-indigo-500 focus:border-indigo-500"
+                                >
+                                    <option value={5}>5</option>
+                                    <option value={10}>10</option>
+                                    <option value={20}>20</option>
+                                </select>
+                                <span className="text-sm text-gray-500">deals per page</span>
+                            </div>
+
+                            <div className="flex items-center gap-2">
+                                <span className="text-sm text-gray-500">
+                                    Showing {Math.min((topDealsPage - 1) * topDealsPerPage + 1, topDeals.length)} - {Math.min(topDealsPage * topDealsPerPage, topDeals.length)} of {topDeals.length}
+                                </span>
+                                <div className="flex gap-1">
+                                    <button
+                                        onClick={() => setTopDealsPage(p => Math.max(1, p - 1))}
+                                        disabled={topDealsPage === 1}
+                                        className="p-1 rounded hover:bg-gray-200 disabled:opacity-50 disabled:hover:bg-transparent"
+                                    >
+                                        <ChevronLeft className="h-5 w-5 text-gray-600" />
+                                    </button>
+                                    <button
+                                        onClick={() => setTopDealsPage(p => Math.min(Math.ceil(topDeals.length / topDealsPerPage), p + 1))}
+                                        disabled={topDealsPage >= Math.ceil(topDeals.length / topDealsPerPage)}
+                                        className="p-1 rounded hover:bg-gray-200 disabled:opacity-50 disabled:hover:bg-transparent"
+                                    >
+                                        <ChevronRight className="h-5 w-5 text-gray-600" />
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="space-y-6">
+                            {topDeals
+                                .slice((topDealsPage - 1) * topDealsPerPage, topDealsPage * topDealsPerPage)
+                                .map((deal, i) => {
+                                    const index = (topDealsPage - 1) * topDealsPerPage + i; // Calculate actual index
+                                    const subCats = categories.find(c => c.id === deal.mainCategoryId)?.subCategories || [];
+                                    return (
+                                        <div key={index} className="group bg-white border border-gray-200 rounded-2xl p-2 shadow-sm hover:shadow-md transition-all duration-200">
+                                            <div className="flex flex-col md:flex-row gap-6">
+
+                                                {/* Left: Image Upload Area */}
+                                                <div className="md:w-64 flex-shrink-0 p-2">
+                                                    <div
+                                                        className="relative w-full aspect-[4/3] bg-gray-50 rounded-xl border-2 border-dashed border-gray-200 hover:border-indigo-500 hover:bg-indigo-50/30 transition-all cursor-pointer overflow-hidden flex flex-col items-center justify-center group/image"
+                                                        onClick={() => triggerUpload({ type: 'top_deal', index })}
+                                                    >
+                                                        {deal.imageUrl ? (
+                                                            <>
+                                                                <img src={deal.imageUrl} alt="Deal" className="w-full h-full object-contain p-4" />
+                                                                <div className="absolute inset-0 bg-black/40 backdrop-blur-[1px] opacity-0 group-hover/image:opacity-100 transition-opacity flex items-center justify-center">
+                                                                    <span className="bg-white text-gray-900 px-4 py-2 rounded-full text-sm font-bold shadow-lg flex items-center gap-2 transform translate-y-2 group-hover/image:translate-y-0 transition-transform">
+                                                                        <Upload className="h-4 w-4" /> Change Image
+                                                                    </span>
+                                                                </div>
+                                                            </>
+                                                        ) : (
+                                                            <div className="text-center p-6">
+                                                                <div className="bg-white p-3 rounded-full shadow-sm inline-block mb-3">
+                                                                    <Image className="h-6 w-6 text-indigo-500" />
+                                                                </div>
+                                                                <p className="text-sm font-semibold text-gray-900">Upload Image</p>
+                                                                <p className="text-xs text-gray-500 mt-1">Recommended: 800x800px</p>
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                    <input
+                                                        type="text"
+                                                        value={deal.imageUrl}
+                                                        onChange={(e) => handleTopDealChange(index, 'imageUrl', e.target.value)}
+                                                        className="mt-3 w-full text-xs text-gray-500 bg-transparent border-none focus:ring-0 p-0 text-center placeholder-gray-400"
+                                                        placeholder="or paste image URL..."
+                                                    />
+                                                </div>
+
+                                                {/* Right: Deal Details */}
+                                                <div className="flex-1 py-4 pr-6 space-y-6">
+                                                    <div className="flex items-center justify-between border-b border-gray-100 pb-4">
+                                                        <div className="flex items-center gap-3">
+                                                            <div className="h-8 w-8 rounded-full bg-gray-900 text-white flex items-center justify-center text-sm font-bold">
+                                                                {index + 1}
+                                                            </div>
+                                                            <h4 className="font-bold text-gray-900 text-lg">
+                                                                {deal.displayTitle || `Untitled Deal #${index + 1} `}
+                                                            </h4>
+                                                        </div>
+                                                        <div className="flex items-center gap-3">
+                                                            <button
+                                                                onClick={() => handleTopDealChange(index, 'active', !deal.active)}
+                                                                className={`text-xs font-bold px-4 py-1.5 rounded-full transition-all border ${deal.active ? 'bg-green-50 text-green-700 border-green-200 hover:bg-green-100' : 'bg-gray-50 text-gray-500 border-gray-200 hover:bg-gray-100'} `}
+                                                            >
+                                                                {deal.active ? 'Active' : 'Hidden'}
+                                                            </button>
+                                                            <button
+                                                                onClick={() => removeTopDeal(index)}
+                                                                className="h-8 w-8 flex items-center justify-center text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                                                                title="Delete Deal"
+                                                            >
+                                                                <Trash2 className="h-4 w-4" />
+                                                            </button>
+                                                        </div>
+                                                    </div>
+
+                                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-5">
+                                                        <div className="space-y-1.5">
+                                                            <label className="text-xs font-bold text-gray-500 uppercase tracking-wider flex items-center gap-2">
+                                                                Display Title <span className="text-red-500">*</span>
+                                                            </label>
+                                                            <input
+                                                                type="text"
+                                                                value={deal.displayTitle}
+                                                                onChange={(e) => handleTopDealChange(index, 'displayTitle', e.target.value)}
+                                                                className="block w-full px-4 py-2.5 text-sm border-gray-300 rounded-xl focus:ring-indigo-500 focus:border-indigo-500 bg-gray-50 focus:bg-white transition-colors"
+                                                                placeholder="e.g. Summer Flash Sale"
+                                                            />
+                                                        </div>
+
+                                                        <div className="space-y-1.5">
+                                                            <label className="text-xs font-bold text-gray-500 uppercase tracking-wider flex items-center gap-2">
+                                                                Offer Tag <span className="text-green-600 px-1.5 py-0.5 bg-green-50 rounded text-[10px]">Visible on Card</span>
+                                                            </label>
+                                                            <input
+                                                                type="text"
+                                                                value={deal.offer}
+                                                                onChange={(e) => handleTopDealChange(index, 'offer', e.target.value)}
+                                                                className="block w-full px-4 py-2.5 text-sm border-gray-300 rounded-xl focus:ring-indigo-500 focus:border-indigo-500 bg-gray-50 focus:bg-white transition-colors font-medium text-green-700"
+                                                                placeholder="e.g. Min 50% Off"
+                                                            />
+                                                        </div>
+
+                                                        <div className="space-y-1.5">
+                                                            <div className="flex justify-between items-center">
+                                                                <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Main Category</label>
+                                                                <button
+                                                                    onClick={() => openCreateCategoryModal('top_deal', null, index, 'top_deal_main')}
+                                                                    className="text-[10px] font-bold text-indigo-600 hover:text-indigo-800 flex items-center gap-1 hover:bg-indigo-50 px-2 py-0.5 rounded transition-colors"
+                                                                >
+                                                                    <Plus className="h-3 w-3" /> Create New
+                                                                </button>
+                                                            </div>
+                                                            <div className="relative">
+                                                                <select
+                                                                    value={deal.mainCategoryId}
+                                                                    onChange={(e) => handleCategorySelectChange(e, null, null, index, 'top_deal_main')}
+                                                                    className="block w-full pl-4 pr-10 py-2.5 text-sm border-gray-300 rounded-xl focus:ring-indigo-500 focus:border-indigo-500 appearance-none bg-white"
+                                                                >
+                                                                    <option value="">Select a Category...</option>
+                                                                    {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                                                                </select>
+                                                                <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 pointer-events-none" />
+                                                            </div>
+                                                        </div>
+
+                                                        <div className="space-y-1.5">
+                                                            <div className="flex justify-between items-center">
+                                                                <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Sub Category</label>
+                                                                <button
+                                                                    onClick={() => openCreateCategoryModal('top_deal', null, index, 'top_deal_sub')}
+                                                                    className="text-[10px] font-bold text-indigo-600 hover:text-indigo-800 flex items-center gap-1 hover:bg-indigo-50 px-2 py-0.5 rounded transition-colors"
+                                                                >
+                                                                    <Plus className="h-3 w-3" /> Create New
+                                                                </button>
+                                                            </div>
+                                                            <div className="relative">
+                                                                <select
+                                                                    value={deal.subCategoryId}
+                                                                    onChange={(e) => handleCategorySelectChange(e, null, null, index, 'top_deal_sub')}
+                                                                    className="block w-full pl-4 pr-10 py-2.5 text-sm border-gray-300 rounded-xl focus:ring-indigo-500 focus:border-indigo-500 appearance-none bg-white disabled:bg-gray-100 disabled:text-gray-400"
+                                                                    disabled={!deal.mainCategoryId}
+                                                                >
+                                                                    <option value="">Select Sub-Category...</option>
+                                                                    {subCats.map(sub => <option key={sub.id} value={sub.id}>{sub.name}</option>)}
+                                                                </select>
+                                                                <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 pointer-events-none" />
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    );
+                                })}
+
+                            <button
+                                onClick={addTopDeal}
+                                className="w-full py-8 border-3 border-dashed border-gray-300 rounded-2xl flex flex-col items-center justify-center text-gray-400 hover:border-indigo-500 hover:text-indigo-600 hover:bg-indigo-50/10 transition-all group gap-3"
+                            >
+                                <div className="bg-gray-100 group-hover:bg-indigo-100 p-4 rounded-full transition-colors">
+                                    <Plus className="h-6 w-6" />
+                                </div>
+                                <div className="text-center">
+                                    <span className="block font-bold text-sm">Add New Deal Card</span>
+                                    <span className="block text-xs mt-1 opacity-70">Add another best selling deal to your list</span>
+                                </div>
+                            </button>
+                        </div>
+
+                        <div className="flex justify-end pt-6 mt-4 border-t border-gray-100">
+                            <button
+                                onClick={() => saveAll()}
+                                className="inline-flex items-center px-6 py-3 border border-transparent rounded-xl shadow-sm text-sm font-bold text-white bg-gray-900 hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-900 transition-all transform hover:scale-[1.02]"
+                            >
+                                <Save className="h-4 w-4 mr-2" /> Save Changes
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                {/* End Top Deals Config */}
+
             </div>
 
             {/* List of Existing Featured Sections */}
@@ -606,12 +919,12 @@ const SellerHomepageControls = () => {
                 {existingSections.length === 0 && <p className="text-sm text-gray-500">No sections added yet.</p>}
 
                 {existingSections.map((section, idx) => (
-                    <div key={idx} className={`bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden ${!section.active ? 'opacity-75' : ''}`}>
+                    <div key={idx} className={`bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden ${!section.active ? 'opacity-75' : ''} `}>
                         <div className="p-5 border-b border-gray-100 bg-gray-50 flex items-center justify-between cursor-pointer" onClick={() => setOpenSectionIndex(openSectionIndex === idx ? null : idx)}>
                             <div className="flex items-center gap-3">
-                                <Layout className={`h-5 w-5 ${section.active ? 'text-indigo-600' : 'text-gray-400'}`} />
+                                <Layout className={`h-5 w-5 ${section.active ? 'text-indigo-600' : 'text-gray-400'} `} />
                                 <div>
-                                    <h3 className={`font-semibold ${section.active ? 'text-gray-900' : 'text-gray-500'}`}>{section.title || 'Untitled Section'}</h3>
+                                    <h3 className={`font-semibold ${section.active ? 'text-gray-900' : 'text-gray-500'} `}>{section.title || 'Untitled Section'}</h3>
                                     <p className="text-xs text-gray-500">{categories.find(c => c.id === section.mainCategoryId)?.name || 'No Category'}</p>
                                 </div>
                             </div>
@@ -620,10 +933,10 @@ const SellerHomepageControls = () => {
                                 <div onClick={(e) => e.stopPropagation()}>
                                     <button
                                         onClick={() => handleExistingSectionUpdate(idx, 'active', !section.active)}
-                                        className={`relative inline-flex h-5 w-9 border-2 border-transparent rounded-full transition-colors focus:outline-none ${section.active ? 'bg-indigo-600' : 'bg-gray-300'}`}
+                                        className={`relative inline-flex h-5 w-9 border-2 border-transparent rounded-full transition-colors focus:outline-none ${section.active ? 'bg-indigo-600' : 'bg-gray-300'} `}
                                         title={section.active ? "Section Active" : "Section Inactive"}
                                     >
-                                        <span className={`inline-block h-4 w-4 rounded-full bg-white transform ring-0 transition-transform ${section.active ? 'translate-x-4' : 'translate-x-0'}`} />
+                                        <span className={`inline-block h-4 w-4 rounded-full bg-white transform ring-0 transition-transform ${section.active ? 'translate-x-4' : 'translate-x-0'} `} />
                                     </button>
                                 </div>
 
@@ -634,7 +947,7 @@ const SellerHomepageControls = () => {
                             </div>
                         </div>
                         {openSectionIndex === idx && (
-                            <div className={`p-5 space-y-6 ${!section.active ? 'pointer-events-none opacity-60' : ''}`}>
+                            <div className={`p-5 space-y-6 ${!section.active ? 'pointer-events-none opacity-60' : ''} `}>
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                     <div>
                                         <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5">Section Title</label>

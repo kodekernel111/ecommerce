@@ -30,6 +30,7 @@ public class SecurityConfig {
                                 .csrf(csrf -> csrf.disable())
                                 .authorizeHttpRequests(auth -> auth
                                                 .requestMatchers("/auth/**").permitAll()
+                                                .requestMatchers("/public/**").permitAll()
                                                 .requestMatchers("/seller/dummy-orders/**").permitAll()
                                                 .requestMatchers("/products/**").permitAll()
                                                 .requestMatchers("/seller/**").hasAuthority("ROLE_SELLER")
