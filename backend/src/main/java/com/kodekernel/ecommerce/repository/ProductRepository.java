@@ -28,8 +28,11 @@ public interface ProductRepository extends JpaRepository<Product, UUID>,
     @Query("SELECT p FROM Product p JOIN p.productMetric pm ORDER BY pm.totalSales DESC")
     Page<Product> findBestSellers(Pageable pageable);
 
-    @Query("SELECT p FROM Product p ORDER BY p.discount DESC")
+    @Query("SELECT p FROM Product p JOIN p.productMetric pm ORDER BY pm.topDealScore DESC")
     Page<Product> findTopDeals(Pageable pageable);
+
+    @Query("SELECT p FROM Product p JOIN p.productMetric pm WHERE p.category = :category OR p.subCategory = :category ORDER BY pm.topDealScore DESC")
+    Page<Product> findTopDealsByCategory(String category, Pageable pageable);
 
     @Query("SELECT p FROM Product p JOIN p.productMetric pm ORDER BY pm.homepageScore DESC")
     Page<Product> findFeaturedProducts(

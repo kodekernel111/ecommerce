@@ -1,49 +1,35 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import HomeCategoryCard from './HomeCategoryCard';
+import api from '../api/axios';
 
 const HomeCategorySection = () => {
-    const sections = [
-        {
-            title: "Winter Essentials for You",
-            linkText: "See all offers",
-            items: [
-                { label: "Men's Jackets", offer: "Min. 50% Off", image: "/images/categories/mens-jacket.png", link: "/category/Fashion" },
-                { label: "Men's Tracksuits", offer: "Top Picks", image: "/images/categories/mens-tracksuit.png", link: "/category/Fashion" },
-                { label: "Men's & Women's Socks", offer: "Min. 50% Off", image: "/images/categories/socks.png", link: "/category/Fashion" },
-                { label: "Men's Sweatshirts", offer: "Special offer", image: "/images/categories/mens-sweatshirt.png", link: "/category/Fashion" }
-            ]
-        },
-        {
-            title: "Best Deals on Designer Furniture",
-            linkText: "See all deals",
-            items: [
-                { label: "Shoe Rack", offer: "Min. 50% Off", image: "/images/categories/shoe-rack.png", link: "/category/Furniture" },
-                { label: "Collapsible Wardrobes", offer: "Min. 50% Off", image: "/images/categories/collapsible-wardrobe.png", link: "/category/Furniture" },
-                { label: "Home Temple", offer: "Min. 50% Off", image: "/images/categories/home-temple.png", link: "/category/Furniture" },
-                { label: "Inflatable Sofas", offer: "Min. 50% Off", image: "/images/categories/sofa.webp", link: "/category/Furniture" }
-            ]
-        },
-        {
-            title: "Make your home stylish",
-            linkText: "Explore all",
-            items: [
-                { label: "Water Bottles & Flasks", offer: "Min. 50% Off", image: "/images/categories/water-bottle.png", link: "/category/Home & Kitchen" },
-                { label: "Wall Clocks", offer: "Special offer", image: "/images/categories/wall-clock.png", link: "/category/Home & Kitchen" },
-                { label: "Blankets", offer: "Min. 50% Off", image: "/images/categories/blankets.png", link: "/category/Home & Kitchen" },
-                { label: "Lunch Boxes", offer: "Best Deals", image: "/images/categories/lunch-box.png", link: "/category/Home & Kitchen" }
-            ]
-        },
-        {
-            title: "Appliances for your home",
-            linkText: "See more",
-            items: [
-                { label: "Air Conditioners", offer: "Up to 40% Off", image: "/images/categories/air-conditioner.png", link: "/category/Electronics" },
-                { label: "Refrigerators", offer: "Exchange Offers", image: "/images/categories/refrigerator.png", link: "/category/Electronics" },
-                { label: "Microwaves", offer: "No Cost EMI", image: "/images/categories/microwave.png", link: "/category/Electronics" },
-                { label: "Washing Machines", offer: "Min. 30% Off", image: "/images/categories/washing-machine.png", link: "/category/Electronics" }
-            ]
-        }
-    ];
+    const [sections, setSections] = useState([]);
+
+    useEffect(() => {
+        const fetchConfig = async () => {
+            try {
+                const res = await api.get('/public/homepage-config');
+                if (res.data && res.data.featuredSections) {
+                    const mappedSections = res.data.featuredSections
+                        .filter(sec => sec.active)
+                        .map(sec => ({
+                            title: sec.title,
+                            linkText: "See all", // You might want to make this dynamic too later if added to backend
+                            items: sec.cards.map(card => ({
+                                label: card.displayTitle,
+                                offer: card.offer,
+                                image: card.imageUrl || 'https://via.placeholder.com/150',
+                                link: card.subCategoryId ? `/category/${card.subCategoryId}` : '/'
+                            }))
+                        }));
+                    setSections(mappedSections);
+                }
+            } catch (error) {
+                console.error("Failed to load homepage config", error);
+            }
+        };
+        fetchConfig();
+    }, []);
 
     return (
         <div>

@@ -43,4 +43,9 @@ public class CategoryController {
             return ResponseEntity.badRequest().body(Map.of("message", e.getMessage()));
         }
     }
+
+    @GetMapping("/{id}")
+    public ResponseEntity<Category> getCategory(@PathVariable UUID id) {
+        return ResponseEntity.ok(categoryService.getCategoryById(id));
+    }
 }

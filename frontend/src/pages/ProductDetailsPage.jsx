@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { useSelector, useDispatch } from 'react-redux';
 import { addToCart } from '../features/cart/cartSlice';
+import api from '../api/axios';
 import {
     ArrowLeft,
     Plus,
@@ -71,9 +72,25 @@ const DeliveryChecker = () => {
 const ProductDetailsPage = () => {
     const { id } = useParams();
     const dispatch = useDispatch();
-    const product = useSelector((state) =>
-        state.products.items.find((item) => item.id === parseInt(id))
-    );
+    const [product, setProduct] = useState(null);
+    const [isLoading, setIsLoading] = useState(true);
+    const [error, setError] = useState(null);
+
+    useEffect(() => {
+        const fetchProduct = async () => {
+            setIsLoading(true);
+            try {
+                const response = await api.get(`/products/${id}`);
+                setProduct(response.data);
+            } catch (err) {
+                console.error("Failed to fetch product", err);
+                setError(true);
+            } finally {
+                setIsLoading(false);
+            }
+        };
+        if (id) fetchProduct();
+    }, [id]);
 
     const [selectedImage, setSelectedImage] = useState(null);
     const [quantity, setQuantity] = useState(1);
@@ -114,7 +131,18 @@ const ProductDetailsPage = () => {
         }
     };
 
-    if (!product) {
+    if (isLoading) {
+        return (
+            <div className="min-h-screen bg-white flex flex-col font-sans text-gray-900">
+                <Navbar />
+                <main className="flex-grow flex items-center justify-center">
+                    <p className="text-gray-500 text-xl">Loading product...</p>
+                </main>
+            </div>
+        );
+    }
+
+    if (error || !product) {
         return (
             <div className="min-h-screen bg-gray-50 flex flex-col">
                 <Navbar />

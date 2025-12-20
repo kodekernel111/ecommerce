@@ -3,6 +3,7 @@ package com.kodekernel.ecommerce.controller;
 import com.kodekernel.ecommerce.dto.ProductDTO;
 import com.kodekernel.ecommerce.service.ProductService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -38,8 +39,19 @@ public class ProductController {
     }
 
     @GetMapping("/top-deals")
-    public ResponseEntity<java.util.List<ProductDTO>> getTopDeals() {
-        return ResponseEntity.ok(productService.getTopDeals());
+    public ResponseEntity<java.util.List<ProductDTO>> getTopDeals(@RequestParam(required = false) String category) {
+        return ResponseEntity.ok(productService.getTopDeals(category));
+    }
+
+    @GetMapping
+    public ResponseEntity<Page<ProductDTO>> browseProducts(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "12") int size,
+            @RequestParam(required = false) String category,
+            @RequestParam(required = false) Double minPrice,
+            @RequestParam(required = false) Double maxPrice,
+            @RequestParam(defaultValue = "newest") String sort) {
+        return ResponseEntity.ok(productService.browseProducts(page, size, category, minPrice, maxPrice, sort));
     }
 
     @GetMapping("/featured")

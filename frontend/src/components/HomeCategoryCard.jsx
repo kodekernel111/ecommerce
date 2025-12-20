@@ -4,7 +4,7 @@ import { Link } from 'react-router-dom';
 const HomeCategoryCard = ({ title, items, linkText, linkTo = "/" }) => {
     return (
         <div className="bg-white p-4 shadow-sm rounded-sm flex flex-col h-full">
-            <h2 className="text-xl font-bold text-gray-900 mb-4">{title}</h2>
+            <h2 className="text-base font-bold text-gray-900 mb-4">{title}</h2>
             <div className="grid grid-cols-2 gap-4 mb-4 flex-grow">
                 {items.map((item, index) => (
                     <Link key={index} to={item.link || "/"} className="block group">

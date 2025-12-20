@@ -339,13 +339,41 @@ public class ProductService {
                 .stream().map(this::convertToDTO).collect(Collectors.toList());
     }
 
-    public List<ProductDTO> getTopDeals() {
-        return productRepository.findTopDeals(PageRequest.of(0, 5))
+    public List<ProductDTO> getTopDeals(String category) {
+        if (category != null && !category.isEmpty()) {
+            return productRepository.findTopDealsByCategory(category, PageRequest.of(0, 10))
+                    .stream().map(this::convertToDTO).collect(Collectors.toList());
+        }
+        return productRepository.findTopDeals(PageRequest.of(0, 10))
                 .stream().map(this::convertToDTO).collect(Collectors.toList());
     }
 
     public List<ProductDTO> getFeaturedProducts() {
         return productRepository.findFeaturedProducts(PageRequest.of(0, 5))
                 .stream().map(this::convertToDTO).collect(Collectors.toList());
+    }
+
+    public Page<ProductDTO> browseProducts(int page, int size, String category, Double minPrice, Double maxPrice,
+            String sort) {
+        Specification<Product> spec = Specification.where(ProductSpecification.isActive(true));
+
+        if (category != null && !category.isEmpty() && !"All Categories".equals(category)) {
+            spec = spec.and(ProductSpecification.hasCategory(category));
+        }
+        if (minPrice != null || maxPrice != null) {
+            spec = spec.and(ProductSpecification.priceBetween(minPrice, maxPrice));
+        }
+
+        Sort sortObj = Sort.by(Sort.Direction.DESC, "createdAt");
+        if ("price-low-high".equals(sort)) {
+            sortObj = Sort.by(Sort.Direction.ASC, "price");
+        } else if ("price-high-low".equals(sort)) {
+            sortObj = Sort.by(Sort.Direction.DESC, "price");
+        } else if ("top-deals".equals(sort)) {
+            sortObj = Sort.by(Sort.Direction.DESC, "productMetric.topDealScore");
+        }
+
+        Pageable pageable = PageRequest.of(page, size, sortObj);
+        return productRepository.findAll(spec, pageable).map(this::convertToDTO);
     }
 }

@@ -85,6 +85,10 @@ public class SellerController {
             config.getHeroSlides().forEach(slide -> slide.setHomepageConfig(config));
         }
 
+        if (config.getTopDeals() != null) {
+            config.getTopDeals().forEach(deal -> deal.setHomepageConfig(config));
+        }
+
         // If there's an existing config, we might want to update it instead of creating
         // new if no ID provided
         // But for now let's assume the frontend sends ID if it exists.

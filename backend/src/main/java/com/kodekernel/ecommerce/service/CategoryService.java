@@ -31,4 +31,8 @@ public class CategoryService {
 
         return categoryRepository.save(category);
     }
+
+    public Category getCategoryById(UUID id) {
+        return categoryRepository.findById(id).orElseThrow(() -> new RuntimeException("Category not found"));
+    }
 }

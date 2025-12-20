@@ -37,6 +37,16 @@ public class ProductMetric {
     private long reviewCount = 0;
 
     private double homepageScore = 0.0;
+
+    // Advanced Scoring Fields
+    private Double salesVelocity = 0.0;
+    private Double conversionRate = 0.0;
+    private Double weightedRating = 0.0;
+    private Double inventoryScore = 0.0;
+    private Double sellerScore = 1.0; // Default to good score
+    private Double trendBoost = 0.0;
+    private Double topDealScore = 0.0;
+
     private LocalDateTime lastCalculated;
 
     @PrePersist
