@@ -13,7 +13,7 @@ const SignUpPage = () => {
     const [mobile, setMobile] = useState('');
     const [password, setPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
-    const [role, setRole] = useState('CUSTOMER');
+    const [role, setRole] = useState('USER');
     const [validationErrors, setValidationErrors] = useState({});
 
     const dispatch = useDispatch();
@@ -56,7 +56,9 @@ const SignUpPage = () => {
                 username: email,
                 email: email,
                 password: password,
-                role: role
+                role: role,
+                name: name,
+                phone: mobile
             });
 
             const { token, userId } = response.data;
@@ -148,7 +150,7 @@ const SignUpPage = () => {
                                         onChange={(e) => setRole(e.target.value)}
                                         className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm bg-white"
                                     >
-                                        <option value="CUSTOMER">Customer (I want to buy)</option>
+                                        <option value="USER">Customer (I want to buy)</option>
                                         <option value="SELLER">Seller (I want to sell)</option>
                                     </select>
                                 </div>

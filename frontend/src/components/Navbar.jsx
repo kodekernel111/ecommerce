@@ -4,6 +4,7 @@ import { useSelector, useDispatch } from 'react-redux';
 import { toggleCart } from '../features/cart/cartSlice';
 import { Link, useNavigate } from 'react-router-dom';
 
+import api from '../api/axios';
 import CategoryBar from './CategoryBar';
 
 const Navbar = ({ showCategories = true }) => {
@@ -12,8 +13,11 @@ const Navbar = ({ showCategories = true }) => {
     const totalQuantity = useSelector((state) => state.cart.totalQuantity);
     const { isAuthenticated, user } = useSelector((state) => state.auth);
     const [searchQuery, setSearchQuery] = useState('');
+    const [suggestions, setSuggestions] = useState([]);
+    const [showSuggestions, setShowSuggestions] = useState(false);
     const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
     const userMenuRef = useRef(null);
+    const searchRef = useRef(null);
 
     const handleSearch = (e) => {
         e.preventDefault();
@@ -22,11 +26,14 @@ const Navbar = ({ showCategories = true }) => {
         }
     };
 
-    // Close dropdown when clicking outside
+    // Close dropdowns when clicking outside
     useEffect(() => {
         const handleClickOutside = (event) => {
             if (userMenuRef.current && !userMenuRef.current.contains(event.target)) {
                 setIsUserMenuOpen(false);
+            }
+            if (searchRef.current && !searchRef.current.contains(event.target)) {
+                setShowSuggestions(false);
             }
         };
 
@@ -35,6 +42,40 @@ const Navbar = ({ showCategories = true }) => {
             document.removeEventListener('mousedown', handleClickOutside);
         };
     }, []);
+
+    // Debounce Search Suggestions
+    useEffect(() => {
+        const delayDebounceFn = setTimeout(async () => {
+            if (searchQuery.trim().length >= 2) {
+                try {
+                    const response = await api.get(`/public/search/suggestions?query=${encodeURIComponent(searchQuery)}`);
+                    setSuggestions(response.data);
+                    setShowSuggestions(true);
+                } catch (error) {
+                    console.error("Failed to fetch suggestions", error);
+                }
+            } else {
+                setSuggestions([]);
+                setShowSuggestions(false);
+            }
+        }, 300);
+
+        return () => clearTimeout(delayDebounceFn);
+    }, [searchQuery]);
+
+    const handleSuggestionClick = (suggestion) => {
+        setSearchQuery(suggestion.text); // Fill input
+        setShowSuggestions(false);
+        if (suggestion.type === 'PRODUCT') {
+            navigate(`/search?q=${encodeURIComponent(suggestion.text)}`);
+        } else if (suggestion.type === 'CATEGORY') {
+            // Assuming category search works or navigate to category page
+            // For now just search query
+            navigate(`/search?q=${encodeURIComponent(suggestion.text)}`);
+        } else {
+            navigate(`/search?q=${encodeURIComponent(suggestion.text)}`);
+        }
+    };
 
     const handleLogout = () => {
         // Implement logout logic here (e.g., clear auth state)
@@ -72,7 +113,7 @@ const Navbar = ({ showCategories = true }) => {
                     </div>
 
                     <div className="flex-1 flex justify-center px-2 lg:ml-6 lg:justify-center">
-                        <div className="max-w-lg w-full lg:max-w-xs">
+                        <div className="max-w-lg w-full lg:max-w-xs relative" ref={searchRef}>
                             <label htmlFor="search" className="sr-only">Search</label>
                             <form onSubmit={handleSearch} className="relative">
                                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -86,8 +127,26 @@ const Navbar = ({ showCategories = true }) => {
                                     type="search"
                                     value={searchQuery}
                                     onChange={(e) => setSearchQuery(e.target.value)}
+                                    onFocus={() => { if (searchQuery.length >= 2) setShowSuggestions(true); }}
+                                    autoComplete="off"
                                 />
                             </form>
+
+                            {/* Search Suggestions Dropdown */}
+                            {showSuggestions && suggestions.length > 0 && (
+                                <div className="absolute top-full left-0 right-0 mt-1 bg-white rounded-md shadow-lg border border-gray-200 py-1 z-50 max-h-96 overflow-y-auto">
+                                    {suggestions.map((item, idx) => (
+                                        <button
+                                            key={idx}
+                                            onClick={() => handleSuggestionClick(item)}
+                                            className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center justify-between group"
+                                        >
+                                            <span className="font-medium">{item.text}</span>
+                                            <span className="text-xs text-gray-400 uppercase tracking-wider group-hover:text-indigo-500">{item.type}</span>
+                                        </button>
+                                    ))}
+                                </div>
+                            )}
                         </div>
                     </div>
 

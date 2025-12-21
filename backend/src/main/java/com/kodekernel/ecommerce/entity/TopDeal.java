@@ -29,6 +29,7 @@ public class TopDeal {
 
     private UUID mainCategoryId;
     private UUID subCategoryId;
+    private UUID tertiaryCategoryId;
 
     @Builder.Default
     private Boolean active = true;

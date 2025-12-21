@@ -4,31 +4,64 @@ import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
 import FilterSidebar from '../components/FilterSidebar';
 import ProductCard from '../components/ProductCard';
-import { useSelector } from 'react-redux';
-import { selectAllProducts } from '../features/products/productsSlice';
+import api from '../api/axios';
 import { Filter } from 'lucide-react';
 
 const SearchResultsPage = () => {
-    const [searchParams] = useSearchParams();
+    const [searchParams, setSearchParams] = useSearchParams();
     const query = searchParams.get('q') || '';
-    const allProducts = useSelector(selectAllProducts);
+    const initialPage = parseInt(searchParams.get('page') || '1', 10);
     const [filteredProducts, setFilteredProducts] = useState([]);
     const [sortBy, setSortBy] = useState('relevance');
     const [showMobileFilters, setShowMobileFilters] = useState(false);
+    const [loading, setLoading] = useState(false);
+    const [currentPage, setCurrentPage] = useState(initialPage);
+    const [totalPages, setTotalPages] = useState(0);
 
     useEffect(() => {
-        // Mock filtering logic based on query
-        // In a real app, this would likely be an API call
-        const results = allProducts.filter(product =>
-            product.name.toLowerCase().includes(query.toLowerCase()) ||
-            product.description.toLowerCase().includes(query.toLowerCase())
-        );
-        setFilteredProducts(results);
-    }, [query, allProducts]);
+        const fetchSearchResults = async () => {
+            setLoading(true);
+            try {
+                // Fetch from backend search API
+                // Page is 0-indexed on backend, 1-indexed on frontend URL
+                const response = await api.get(`/products?search=${encodeURIComponent(query)}&sort=${sortBy}&size=9&page=${currentPage - 1}`);
+                if (response.data && response.data.content) {
+                    setFilteredProducts(response.data.content);
+                    setTotalPages(response.data.totalPages);
+                } else {
+                    setFilteredProducts([]);
+                    setTotalPages(0);
+                }
+            } catch (error) {
+                console.error("Failed to fetch search results", error);
+                setFilteredProducts([]);
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        if (query) {
+            fetchSearchResults();
+        } else {
+            setFilteredProducts([]);
+        }
+    }, [query, sortBy, currentPage]);
+
+    // Update URL when page changes
+    useEffect(() => {
+        setSearchParams({ q: query, page: currentPage.toString() });
+        window.scrollTo(0, 0);
+    }, [currentPage, setSearchParams, query]);
 
     const handleSortChange = (e) => {
         setSortBy(e.target.value);
-        // Implement sorting logic here if needed
+        setCurrentPage(1); // Reset to page 1 on sort change
+    };
+
+    const handlePageChange = (newPage) => {
+        if (newPage >= 1 && newPage <= totalPages) {
+            setCurrentPage(newPage);
+        }
     };
 
     return (
@@ -93,12 +126,39 @@ const SearchResultsPage = () => {
 
                     {/* Product Grid */}
                     <div className="flex-1">
-                        {filteredProducts.length > 0 ? (
-                            <div className="grid grid-cols-1 gap-y-10 gap-x-6 sm:grid-cols-2 lg:grid-cols-3 xl:gap-x-8">
-                                {filteredProducts.map((product) => (
-                                    <ProductCard key={product.id} product={product} />
-                                ))}
+                        {loading ? (
+                            <div className="text-center py-12">
+                                <p className="text-gray-500 text-lg">Loading results...</p>
                             </div>
+                        ) : filteredProducts.length > 0 ? (
+                            <>
+                                <div className="grid grid-cols-1 gap-y-10 gap-x-6 sm:grid-cols-2 lg:grid-cols-3 xl:gap-x-8 min-h-[1200px] content-start">
+                                    {filteredProducts.map((product) => (
+                                        <ProductCard key={product.id} product={product} />
+                                    ))}
+                                </div>
+
+                                {/* Pagination Controls */}
+                                <div className="mt-10 flex justify-center items-center space-x-2">
+                                    <button
+                                        onClick={() => handlePageChange(currentPage - 1)}
+                                        disabled={currentPage === 1}
+                                        className="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                                    >
+                                        Previous
+                                    </button>
+                                    <span className="text-sm text-gray-700">
+                                        Page <span className="font-medium">{currentPage}</span> of <span className="font-medium">{totalPages > 0 ? totalPages : 1}</span>
+                                    </span>
+                                    <button
+                                        onClick={() => handlePageChange(currentPage + 1)}
+                                        disabled={currentPage >= totalPages || totalPages === 0}
+                                        className="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                                    >
+                                        Next
+                                    </button>
+                                </div>
+                            </>
                         ) : (
                             <div className="text-center py-12">
                                 <p className="text-gray-500 text-lg">No products found matching "{query}".</p>

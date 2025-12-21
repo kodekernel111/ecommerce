@@ -4,6 +4,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
 import { CheckCircle, CreditCard, Truck, Package } from 'lucide-react';
+import LazyImage from '../components/LazyImage';
 
 const CheckoutPage = () => {
     const navigate = useNavigate();
@@ -511,7 +512,7 @@ const CheckoutPage = () => {
                                 {items.map((item) => (
                                     <li key={item.id} className="flex py-4">
                                         <div className="flex-shrink-0">
-                                            <img
+                                            <LazyImage
                                                 src={item.image}
                                                 alt={item.name}
                                                 className="w-16 h-16 rounded-md object-center object-cover"

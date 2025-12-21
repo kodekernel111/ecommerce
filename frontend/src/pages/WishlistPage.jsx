@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
 import { Heart, ShoppingCart } from 'lucide-react';
+import LazyImage from '../components/LazyImage';
 
 const WishlistPage = () => {
     // Mock wishlist data since we don't have a slice for it yet
@@ -34,7 +35,7 @@ const WishlistPage = () => {
                         {wishlistItems.map((item) => (
                             <div key={item.id} className="group relative bg-white border border-gray-200 rounded-lg flex flex-col overflow-hidden hover:shadow-lg transition-shadow">
                                 <div className="aspect-w-3 aspect-h-4 bg-gray-200 group-hover:opacity-75 sm:aspect-none sm:h-64">
-                                    <img
+                                    <LazyImage
                                         src={item.image}
                                         alt={item.name}
                                         className="w-full h-full object-center object-cover sm:w-full sm:h-full"

@@ -1,6 +1,8 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 
+import LazyImage from './LazyImage';
+
 const HomeCategoryCard = ({ title, items, linkText, linkTo = "/" }) => {
     return (
         <div className="bg-white p-4 shadow-sm rounded-sm flex flex-col h-full">
@@ -8,8 +10,8 @@ const HomeCategoryCard = ({ title, items, linkText, linkTo = "/" }) => {
             <div className="grid grid-cols-2 gap-4 mb-4 flex-grow">
                 {items.map((item, index) => (
                     <Link key={index} to={item.link || "/"} className="block group">
-                        <div className="aspect-w-1 aspect-h-1 w-full overflow-hidden bg-gray-200 rounded-sm mb-1">
-                            <img
+                        <div className="aspect-square w-full overflow-hidden bg-gray-200 rounded-sm mb-1">
+                            <LazyImage
                                 src={item.image}
                                 alt={item.label}
                                 className="w-full h-full object-center object-cover group-hover:opacity-75"

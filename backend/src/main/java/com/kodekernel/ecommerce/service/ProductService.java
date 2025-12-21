@@ -141,11 +141,13 @@ public class ProductService {
         product.setDescription(productDTO.getDescription());
         product.setPrice(productDTO.getPrice());
         product.setMrp(productDTO.getMrp());
+        product.setCostPrice(productDTO.getCostPrice());
         product.setDiscount(productDTO.getDiscount());
         product.setQuantity(productDTO.getQuantity());
         product.setCategory(productDTO.getCategory());
         product.setCategory(productDTO.getCategory());
         product.setSubCategory(productDTO.getSubCategory());
+        product.setTertiaryCategory(productDTO.getTertiaryCategory());
         product.setTags(productDTO.getTags());
         product.setBrand(productDTO.getBrand());
         product.setSku(productDTO.getSku());
@@ -207,10 +209,12 @@ public class ProductService {
                 product.getDescription(),
                 product.getPrice(),
                 product.getMrp(),
+                product.getCostPrice(),
                 product.getDiscount(),
                 product.getQuantity(),
                 product.getCategory(),
                 product.getSubCategory(),
+                product.getTertiaryCategory(),
                 product.getImage(),
                 product.getActive(),
                 product.getSellerId(),
@@ -230,10 +234,12 @@ public class ProductService {
         product.setDescription(productDTO.getDescription());
         product.setPrice(productDTO.getPrice());
         product.setMrp(productDTO.getMrp());
+        product.setCostPrice(productDTO.getCostPrice());
         product.setDiscount(productDTO.getDiscount());
         product.setQuantity(productDTO.getQuantity());
         product.setCategory(productDTO.getCategory());
         product.setSubCategory(productDTO.getSubCategory());
+        product.setTertiaryCategory(productDTO.getTertiaryCategory());
         product.setImage(productDTO.getImage());
         product.setSellerId(productDTO.getSellerId());
         product.setSellerId(productDTO.getSellerId());
@@ -353,10 +359,14 @@ public class ProductService {
                 .stream().map(this::convertToDTO).collect(Collectors.toList());
     }
 
-    public Page<ProductDTO> browseProducts(int page, int size, String category, Double minPrice, Double maxPrice,
+    public Page<ProductDTO> browseProducts(int page, int size, String search, String category, Double minPrice,
+            Double maxPrice,
             String sort) {
         Specification<Product> spec = Specification.where(ProductSpecification.isActive(true));
 
+        if (search != null && !search.isEmpty()) {
+            spec = spec.and(ProductSpecification.containsText(search));
+        }
         if (category != null && !category.isEmpty() && !"All Categories".equals(category)) {
             spec = spec.and(ProductSpecification.hasCategory(category));
         }
@@ -371,6 +381,8 @@ public class ProductService {
             sortObj = Sort.by(Sort.Direction.DESC, "price");
         } else if ("top-deals".equals(sort)) {
             sortObj = Sort.by(Sort.Direction.DESC, "productMetric.topDealScore");
+        } else if ("relevance".equals(sort)) {
+            // Default sort is fine, or arguably by popularity
         }
 
         Pageable pageable = PageRequest.of(page, size, sortObj);

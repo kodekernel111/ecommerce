@@ -21,11 +21,13 @@ const AddProductPage = () => {
     const [newProduct, setNewProduct] = useState({
         name: '',
         mrp: '',
+        costPrice: '',
         discount: 0,
         price: '',
         description: '',
         category: '',
         subCategory: '',
+        tertiaryCategory: '',
         stock: '',
         tags: [],
         images: [],
@@ -44,6 +46,7 @@ const AddProductPage = () => {
     const [categoryCreationType, setCategoryCreationType] = useState('MAIN');
     const [newCategoryName, setNewCategoryName] = useState('');
     const [parentCategoryForNew, setParentCategoryForNew] = useState('');
+    const [tempMainCategoryForTertiary, setTempMainCategoryForTertiary] = useState('');
 
     useEffect(() => {
         fetchCategories();
@@ -67,11 +70,13 @@ const AddProductPage = () => {
                     setNewProduct({
                         name: product.name,
                         mrp: product.mrp || '',
+                        costPrice: product.costPrice || '',
                         discount: product.discount || 0,
                         price: product.price,
                         description: product.description,
                         category: product.category || '',
                         subCategory: product.subCategory || '',
+                        tertiaryCategory: product.tertiaryCategory || '',
                         stock: product.quantity,
                         tags: product.tags || [],
                         images: product.images || [],
@@ -185,6 +190,10 @@ const AddProductPage = () => {
     const handleAddCategory = async () => {
         if (!newCategoryName.trim()) return;
 
+        if (categoryCreationType !== 'MAIN' && !parentCategoryForNew) {
+            alert("Parent category is missing! Please select a parent category first.");
+            return;
+        }
         try {
             const payload = {
                 name: newCategoryName,
@@ -289,10 +298,12 @@ const AddProductPage = () => {
                 description: newProduct.description,
                 price: parseFloat(newProduct.price),
                 mrp: parseFloat(newProduct.mrp),
+                costPrice: parseFloat(newProduct.costPrice),
                 discount: parseInt(newProduct.discount),
                 quantity: parseInt(newProduct.stock),
                 category: newProduct.category,
                 subCategory: newProduct.subCategory,
+                tertiaryCategory: newProduct.tertiaryCategory,
                 tags: newProduct.tags,
                 images: imagesListForDto,
                 brand: newProduct.brand,
@@ -389,6 +400,25 @@ const AddProductPage = () => {
                                     </div>
 
                                     <div>
+                                        <label htmlFor="costPrice" className="block text-sm font-medium text-gray-700 mb-2">Cost Price ($)</label>
+                                        <div className="relative rounded-md shadow-sm">
+                                            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                                <span className="text-gray-500 sm:text-sm">$</span>
+                                            </div>
+                                            <input
+                                                type="number"
+                                                id="costPrice"
+                                                step="0.01"
+                                                required
+                                                value={newProduct.costPrice}
+                                                onChange={(e) => setNewProduct({ ...newProduct, costPrice: e.target.value })}
+                                                className="block w-full pl-7 rounded-lg border-gray-300 shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm p-3 border transition-shadow"
+                                                placeholder="0.00"
+                                            />
+                                        </div>
+                                    </div>
+
+                                    <div>
                                         <label htmlFor="price" className="block text-sm font-medium text-gray-700 mb-2">Selling Price ($)</label>
                                         <div className="relative rounded-md shadow-sm">
                                             <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -464,12 +494,28 @@ const AddProductPage = () => {
                                             required
                                             disabled={!newProduct.category}
                                             value={newProduct.subCategory}
-                                            onChange={(e) => setNewProduct({ ...newProduct, subCategory: e.target.value })}
+                                            onChange={(e) => setNewProduct({ ...newProduct, subCategory: e.target.value, tertiaryCategory: '' })}
                                             className="block w-full rounded-lg border-gray-300 shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm p-3 border transition-shadow bg-white disabled:bg-gray-100 disabled:text-gray-400"
                                         >
                                             <option value="">Select Sub Category</option>
                                             {selectedCategory?.subCategories?.map((sub) => (
                                                 <option key={sub.id} value={sub.name}>{sub.name}</option>
+                                            ))}
+                                        </select>
+                                    </div>
+
+                                    <div>
+                                        <label htmlFor="tertiaryCategory" className="block text-sm font-medium text-gray-700 mb-2">Tertiary Category</label>
+                                        <select
+                                            id="tertiaryCategory"
+                                            disabled={!newProduct.subCategory}
+                                            value={newProduct.tertiaryCategory}
+                                            onChange={(e) => setNewProduct({ ...newProduct, tertiaryCategory: e.target.value })}
+                                            className="block w-full rounded-lg border-gray-300 shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm p-3 border transition-shadow bg-white disabled:bg-gray-100 disabled:text-gray-400"
+                                        >
+                                            <option value="">Select Category</option>
+                                            {selectedCategory?.subCategories?.find(s => s.name === newProduct.subCategory)?.subCategories?.map((ter) => (
+                                                <option key={ter.id} value={ter.name}>{ter.name}</option>
                                             ))}
                                         </select>
                                     </div>
@@ -492,6 +538,7 @@ const AddProductPage = () => {
                                         </button>
                                         <button
                                             type="button"
+                                            disabled={!newProduct.category}
                                             onClick={() => {
                                                 setCategoryCreationType('SUB');
                                                 setShowAddCategory(true);
@@ -500,10 +547,31 @@ const AddProductPage = () => {
                                                     setParentCategoryForNew(currentMain.id);
                                                 }
                                             }}
-                                            className="inline-flex items-center px-3 py-1.5 border border-indigo-600 rounded-lg text-xs font-medium text-indigo-600 bg-white hover:bg-indigo-50 transition-colors"
+                                            className="inline-flex items-center px-3 py-1.5 border border-indigo-600 rounded-lg text-xs font-medium text-indigo-600 bg-white hover:bg-indigo-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed disabled:border-gray-300 disabled:text-gray-400"
                                         >
                                             <FolderPlus className="h-3.5 w-3.5 mr-1.5" />
                                             New Sub Category
+                                        </button>
+                                        <button
+                                            type="button"
+                                            disabled={!newProduct.subCategory}
+                                            onClick={() => {
+                                                setCategoryCreationType('TERTIARY');
+                                                setShowAddCategory(true);
+                                                const currentMain = categories.find(c => c.name === newProduct.category);
+                                                const currentSub = currentMain?.subCategories?.find(s => s.name === newProduct.subCategory);
+
+                                                if (currentMain) {
+                                                    setTempMainCategoryForTertiary(currentMain.id);
+                                                }
+                                                if (currentSub) {
+                                                    setParentCategoryForNew(currentSub.id);
+                                                }
+                                            }}
+                                            className="inline-flex items-center px-3 py-1.5 border border-indigo-600 rounded-lg text-xs font-medium text-indigo-600 bg-white hover:bg-indigo-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed disabled:border-gray-300 disabled:text-gray-400"
+                                        >
+                                            <FolderPlus className="h-3.5 w-3.5 mr-1.5" />
+                                            New Tertiary Category
                                         </button>
                                     </div>
                                 </div>
@@ -831,6 +899,41 @@ const AddProductPage = () => {
                             </div>
                         )}
 
+                        {categoryCreationType === 'TERTIARY' && (
+                            <>
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">Main Category <span className="text-red-500">*</span></label>
+                                    <select
+                                        value={tempMainCategoryForTertiary}
+                                        onChange={(e) => {
+                                            setTempMainCategoryForTertiary(e.target.value);
+                                            setParentCategoryForNew(''); // Reset sub category selection
+                                        }}
+                                        className="block w-full rounded-lg border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2.5 border"
+                                    >
+                                        <option value="">Select Main Category</option>
+                                        {categories.map((cat) => (
+                                            <option key={cat.id} value={cat.id}>{cat.name}</option>
+                                        ))}
+                                    </select>
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">Sub Category (Parent) <span className="text-red-500">*</span></label>
+                                    <select
+                                        value={parentCategoryForNew}
+                                        onChange={(e) => setParentCategoryForNew(e.target.value)}
+                                        disabled={!tempMainCategoryForTertiary}
+                                        className="block w-full rounded-lg border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2.5 border disabled:bg-gray-100"
+                                    >
+                                        <option value="">Select Sub Category</option>
+                                        {categories.find(c => c.id === tempMainCategoryForTertiary)?.subCategories?.map((sub) => (
+                                            <option key={sub.id} value={sub.id}>{sub.name}</option>
+                                        ))}
+                                    </select>
+                                </div>
+                            </>
+                        )}
+
                         <div className="flex justify-end space-x-3 pt-4">
                             <button
                                 type="button"
@@ -846,7 +949,7 @@ const AddProductPage = () => {
                             <button
                                 type="button"
                                 onClick={handleAddCategory}
-                                disabled={categoryCreationType === 'SUB' && !parentCategoryForNew}
+                                disabled={categoryCreationType !== 'MAIN' && !parentCategoryForNew}
                                 className="px-4 py-2 border border-transparent rounded-lg text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors"
                             >
                                 Create Category

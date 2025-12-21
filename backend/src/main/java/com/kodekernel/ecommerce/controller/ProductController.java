@@ -47,11 +47,12 @@ public class ProductController {
     public ResponseEntity<Page<ProductDTO>> browseProducts(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "12") int size,
+            @RequestParam(required = false) String search,
             @RequestParam(required = false) String category,
             @RequestParam(required = false) Double minPrice,
             @RequestParam(required = false) Double maxPrice,
             @RequestParam(defaultValue = "newest") String sort) {
-        return ResponseEntity.ok(productService.browseProducts(page, size, category, minPrice, maxPrice, sort));
+        return ResponseEntity.ok(productService.browseProducts(page, size, search, category, minPrice, maxPrice, sort));
     }
 
     @GetMapping("/featured")

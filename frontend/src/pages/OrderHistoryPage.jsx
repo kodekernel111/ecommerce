@@ -3,6 +3,7 @@ import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
 import { Package, Truck, CheckCircle, Clock } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import LazyImage from '../components/LazyImage';
 
 const OrderHistoryPage = () => {
     // Mock Data for Orders
@@ -121,7 +122,7 @@ const OrderHistoryPage = () => {
                                     {order.items.map((item) => (
                                         <div key={item.id} className="flex items-start">
                                             <div className="flex-shrink-0 h-20 w-20 border border-gray-200 rounded-md overflow-hidden">
-                                                <img src={item.image} alt={item.name} className="h-full w-full object-cover object-center" />
+                                                <LazyImage src={item.image} alt={item.name} className="h-full w-full object-cover object-center" />
                                             </div>
                                             <div className="ml-4 flex-1">
                                                 <h4 className="text-sm font-medium text-gray-900">

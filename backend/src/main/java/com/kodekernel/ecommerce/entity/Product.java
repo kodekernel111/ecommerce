@@ -21,10 +21,12 @@ public class Product {
     private String description;
     private Double price;
     private Double mrp;
+    private Double costPrice;
     private Integer discount;
     private Integer quantity;
     private String category;
     private String subCategory;
+    private String tertiaryCategory;
     private String image;
     private Boolean active = true;
     private UUID sellerId;

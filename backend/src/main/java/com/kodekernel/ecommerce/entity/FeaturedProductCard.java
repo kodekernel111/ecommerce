@@ -25,6 +25,7 @@ public class FeaturedProductCard {
     private UUID id;
 
     private UUID subCategoryId;
+    private UUID tertiaryCategoryId;
     private String displayTitle;
     private String imageUrl;
     private String offer;

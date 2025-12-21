@@ -15,6 +15,8 @@ const CategoryPage = () => {
     // Default to 'top-deals' if user clicks a deal, or 'newest' otherwise?
     // We'll default to 'top-deals' as requested by user context.
     const [sortBy, setSortBy] = useState('top-deals');
+    const [currentPage, setCurrentPage] = useState(1);
+    const [totalPages, setTotalPages] = useState(0);
 
     useEffect(() => {
         const fetchData = async () => {
@@ -45,26 +47,27 @@ const CategoryPage = () => {
                 if (sortBy) params.append('sort', sortBy);
                 if (priceRange[0] !== undefined) params.append('minPrice', priceRange[0]);
                 if (priceRange[1] !== undefined) params.append('maxPrice', priceRange[1]);
-                params.append('size', 12); // Fetch 12 items per page
+                params.append('size', 9); // Consistent page size
+                params.append('page', currentPage - 1);
 
                 const productRes = await api.get(`/products?${params.toString()}`);
-                // API returns Page<ProductDTO> { content: [], ... } or direct list if simplified?
-                // Our Controller returns ResponseEntity<Page<ProductDTO>> so accessing .data.content is likely needed.
-                // However, check if axios unwraps it. Usually res.data is the JSON.
-                // Spring Page JSON structure: { content: [...], pageable: ..., totalElements: ... }
 
-                if (productRes.data && Array.isArray(productRes.data.content)) {
+                if (productRes.data && productRes.data.content) {
                     setProducts(productRes.data.content);
+                    setTotalPages(productRes.data.totalPages);
                 } else if (Array.isArray(productRes.data)) {
-                    // Fallback if backend configuration changes to return list
+                    // Fallback
                     setProducts(productRes.data);
+                    setTotalPages(1);
                 } else {
                     setProducts([]);
+                    setTotalPages(0);
                 }
 
             } catch (error) {
                 console.error("Failed to fetch products", error);
                 setProducts([]);
+                setTotalPages(0);
             } finally {
                 setIsLoading(false);
             }
@@ -76,7 +79,12 @@ const CategoryPage = () => {
         const timeoutId = setTimeout(() => fetchData(), 300);
         return () => clearTimeout(timeoutId);
 
-    }, [categoryName, sortBy, priceRange]); // Re-fetch on filter change
+    }, [categoryName, sortBy, priceRange, currentPage]);
+
+    // Reset to page 1 when filters change (except page change itself)
+    useEffect(() => {
+        setCurrentPage(1);
+    }, [categoryName, sortBy, priceRange]);
 
     return (
         <div className="min-h-screen bg-gray-50 flex flex-col font-sans">
@@ -140,10 +148,40 @@ const CategoryPage = () => {
                                 <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
                             </div>
                         ) : products.length > 0 ? (
-                            <div className="grid grid-cols-1 gap-y-10 sm:grid-cols-2 gap-x-6 lg:grid-cols-3 xl:gap-x-8">
-                                {products.map((product) => (
-                                    <ProductCard key={product.id} product={product} />
-                                ))}
+                            <div className="flex flex-col h-full">
+                                <div className="grid grid-cols-1 gap-y-10 sm:grid-cols-2 gap-x-6 lg:grid-cols-3 xl:gap-x-8 min-h-[1200px] content-start">
+                                    {products.map((product) => (
+                                        <ProductCard key={product.id} product={product} />
+                                    ))}
+                                </div>
+
+                                {totalPages > 1 && (
+                                    <div className="mt-10 flex justify-center items-center space-x-2 pb-10">
+                                        <button
+                                            onClick={() => {
+                                                setCurrentPage(prev => Math.max(prev - 1, 1));
+                                                window.scrollTo(0, 0);
+                                            }}
+                                            disabled={currentPage === 1}
+                                            className="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                                        >
+                                            Previous
+                                        </button>
+                                        <span className="text-sm text-gray-700">
+                                            Page <span className="font-medium">{currentPage}</span> of <span className="font-medium">{totalPages}</span>
+                                        </span>
+                                        <button
+                                            onClick={() => {
+                                                setCurrentPage(prev => Math.min(prev + 1, totalPages));
+                                                window.scrollTo(0, 0);
+                                            }}
+                                            disabled={currentPage >= totalPages}
+                                            className="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                                        >
+                                            Next
+                                        </button>
+                                    </div>
+                                )}
                             </div>
                         ) : (
                             <div className="text-center py-20 bg-white rounded-lg border border-gray-200">

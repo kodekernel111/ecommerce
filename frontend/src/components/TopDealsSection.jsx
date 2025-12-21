@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import api from '../api/axios'; // Adjust path if necessary
 
+import LazyImage from './LazyImage';
+
 const TopDealsSection = () => {
     const [deals, setDeals] = useState([]);
     const [visible, setVisible] = useState(true);
@@ -41,7 +43,7 @@ const TopDealsSection = () => {
                     return (
                         <Link key={deal.id || index} to={linkTo} className="flex-shrink-0 w-40 group block">
                             <div className="w-40 h-40 bg-gray-100 rounded-md overflow-hidden mb-3 border border-gray-200">
-                                <img
+                                <LazyImage
                                     src={deal.imageUrl || 'https://via.placeholder.com/150'}
                                     alt={deal.displayTitle}
                                     className="w-full h-full object-contain p-2 group-hover:scale-105 transition-transform duration-200"

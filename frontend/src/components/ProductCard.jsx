@@ -4,13 +4,15 @@ import { addToCart } from '../features/cart/cartSlice';
 import { ShoppingCart } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
+import LazyImage from './LazyImage';
+
 const ProductCard = ({ product }) => {
     const dispatch = useDispatch();
 
     return (
         <Link to={`/product/${product.id}`} className="group relative bg-white border border-gray-200 rounded-lg flex flex-col overflow-hidden hover:shadow-lg transition-shadow duration-300">
-            <div className="aspect-w-3 aspect-h-4 bg-gray-200 group-hover:opacity-75 sm:aspect-none sm:h-64">
-                <img
+            <div className="aspect-[3/4] bg-gray-200 group-hover:opacity-75 sm:aspect-none sm:h-64">
+                <LazyImage
                     src={product.image}
                     alt={product.name}
                     className="w-full h-full object-center object-cover sm:w-full sm:h-full transition-transform duration-500 ease-in-out group-hover:scale-105"

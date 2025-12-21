@@ -26,7 +26,16 @@ public class CategoryService {
         if (parentId != null) {
             Category parent = categoryRepository.findById(parentId)
                     .orElseThrow(() -> new RuntimeException("Parent category not found"));
+
+            if (categoryRepository.existsByNameAndParent(name, parent)) {
+                throw new RuntimeException(
+                        "Category '" + name + "' already exists under parent '" + parent.getName() + "'");
+            }
             category.setParent(parent);
+        } else {
+            if (categoryRepository.existsByNameAndParentIsNull(name)) {
+                throw new RuntimeException("Main Category '" + name + "' already exists");
+            }
         }
 
         return categoryRepository.save(category);

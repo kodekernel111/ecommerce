@@ -34,7 +34,7 @@ const SellerHomepageControls = () => {
     const [openSectionIndex, setOpenSectionIndex] = useState(null);
 
     // New Section Form
-    const defaultCard = { subCategoryId: '', displayTitle: '', image: '', offer: '', active: true };
+    const defaultCard = { subCategoryId: '', tertiaryCategoryId: '', displayTitle: '', image: '', offer: '', active: true };
     const [newSection, setNewSection] = useState({
         title: '',
         mainCategoryId: '',
@@ -100,6 +100,8 @@ const SellerHomepageControls = () => {
                             offer: d.offer || '',
                             mainCategoryId: d.mainCategoryId || '',
                             subCategoryId: d.subCategoryId || '',
+                            subCategoryId: d.subCategoryId || '',
+                            tertiaryCategoryId: d.tertiaryCategoryId || '',
                             active: d.active !== undefined ? d.active : true
                         })));
                     }
@@ -119,6 +121,7 @@ const SellerHomepageControls = () => {
         return filled.map(c => ({
             id: c.id, // Preserve ID
             subCategoryId: c.subCategoryId || '',
+            tertiaryCategoryId: c.tertiaryCategoryId || '',
             displayTitle: c.displayTitle || '',
             image: c.imageUrl || c.image || '', // Handle backend field name mismatch if any
             offer: c.offer || '',
@@ -140,7 +143,7 @@ const SellerHomepageControls = () => {
     };
 
     const addTopDeal = () => {
-        setTopDeals([...topDeals, { displayTitle: '', imageUrl: '', offer: '', mainCategoryId: '', subCategoryId: '', active: true }]);
+        setTopDeals([...topDeals, { displayTitle: '', imageUrl: '', offer: '', mainCategoryId: '', subCategoryId: '', tertiaryCategoryId: '', active: true }]);
     };
 
     const removeTopDeal = (index) => {
@@ -289,6 +292,7 @@ const SellerHomepageControls = () => {
                 cards: sec.cards.map(c => ({
                     id: c.id, // Preserve ID
                     subCategoryId: c.subCategoryId || null,
+                    tertiaryCategoryId: c.tertiaryCategoryId || null,
                     displayTitle: c.displayTitle,
                     imageUrl: c.image,
                     offer: c.offer,
@@ -302,7 +306,9 @@ const SellerHomepageControls = () => {
                 imageUrl: d.imageUrl,
                 offer: d.offer,
                 mainCategoryId: d.mainCategoryId || null,
+                mainCategoryId: d.mainCategoryId || null,
                 subCategoryId: d.subCategoryId || null,
+                tertiaryCategoryId: d.tertiaryCategoryId || null,
                 active: d.active
             }))
         };
@@ -341,6 +347,7 @@ const SellerHomepageControls = () => {
                     offer: d.offer || '',
                     mainCategoryId: d.mainCategoryId || '',
                     subCategoryId: d.subCategoryId || '',
+                    tertiaryCategoryId: d.tertiaryCategoryId || '',
                     active: d.active !== undefined ? d.active : true
                 })));
             }
@@ -411,6 +418,22 @@ const SellerHomepageControls = () => {
                 alert("Please select a Main Category first.");
                 return;
             }
+        } else if (context === 'tertiary') {
+            if (type === 'new') {
+                parentId = newSection.cards[cardIndex].subCategoryId;
+            } else {
+                parentId = existingSections[sectionIndex].cards[cardIndex].subCategoryId;
+            }
+            if (!parentId) {
+                alert("Please select a Sub Category first.");
+                return;
+            }
+        } else if (context === 'top_deal_tertiary') {
+            parentId = topDeals[cardIndex].subCategoryId;
+            if (!parentId) {
+                alert("Please select a Sub Category first.");
+                return;
+            }
         }
 
         setParentCategoryForCreation(parentId);
@@ -427,13 +450,25 @@ const SellerHomepageControls = () => {
             else handleExistingSectionUpdate(sectionIndex, 'mainCategoryId', value);
         } else if (context === 'top_deal_main') {
             handleTopDealChange(cardIndex, 'mainCategoryId', value);
-            // reset sub category when main changes
+            // reset sub & tertiary category when main changes
             handleTopDealChange(cardIndex, 'subCategoryId', '');
+            handleTopDealChange(cardIndex, 'tertiaryCategoryId', '');
         } else if (context === 'top_deal_sub') {
             handleTopDealChange(cardIndex, 'subCategoryId', value);
-        } else {
-            if (type === 'new') handleNewSectionCardChange(cardIndex, 'subCategoryId', value);
-            else handleExistingCardUpdate(sectionIndex, cardIndex, 'subCategoryId', value);
+            handleTopDealChange(cardIndex, 'tertiaryCategoryId', '');
+        } else if (context === 'top_deal_tertiary') {
+            handleTopDealChange(cardIndex, 'tertiaryCategoryId', value);
+        } else if (context === 'sub') {
+            if (type === 'new') {
+                handleNewSectionCardChange(cardIndex, 'subCategoryId', value);
+                handleNewSectionCardChange(cardIndex, 'tertiaryCategoryId', '');
+            } else {
+                handleExistingCardUpdate(sectionIndex, cardIndex, 'subCategoryId', value);
+                handleExistingCardUpdate(sectionIndex, cardIndex, 'tertiaryCategoryId', '');
+            }
+        } else if (context === 'tertiary') {
+            if (type === 'new') handleNewSectionCardChange(cardIndex, 'tertiaryCategoryId', value);
+            else handleExistingCardUpdate(sectionIndex, cardIndex, 'tertiaryCategoryId', value);
         }
     };
 
@@ -462,6 +497,14 @@ const SellerHomepageControls = () => {
                     handleTopDealChange(cardIndex, 'subCategoryId', '');
                 } else if (context === 'top_deal_sub') {
                     handleTopDealChange(cardIndex, 'subCategoryId', newCat.id);
+                } else if (context === 'top_deal_tertiary') {
+                    handleTopDealChange(cardIndex, 'tertiaryCategoryId', newCat.id);
+                } else if (context === 'sub') {
+                    if (type === 'new') handleNewSectionCardChange(cardIndex, 'subCategoryId', newCat.id);
+                    else handleExistingCardUpdate(sectionIndex, cardIndex, 'subCategoryId', newCat.id);
+                } else if (context === 'tertiary') {
+                    if (type === 'new') handleNewSectionCardChange(cardIndex, 'tertiaryCategoryId', newCat.id);
+                    else handleExistingCardUpdate(sectionIndex, cardIndex, 'tertiaryCategoryId', newCat.id);
                 }
             }
 
@@ -481,6 +524,7 @@ const SellerHomepageControls = () => {
 
         const mainCatId = sectionType === 'new' ? newSection.mainCategoryId : existingSections[sectionIndex].mainCategoryId;
         const subCats = categories.find(c => c.id === mainCatId)?.subCategories || [];
+        const tertiaryCats = subCats.find(s => s.id === card.subCategoryId)?.subCategories || [];
 
         return (
             <div key={index} className="border border-gray-200 rounded-lg p-3 bg-gray-50/50 space-y-3 relative group">
@@ -513,6 +557,29 @@ const SellerHomepageControls = () => {
                             <option value="">Select sub-category...</option>
                             {subCats.map(sub => (
                                 <option key={sub.id} value={sub.id}>{sub.name}</option>
+                            ))}
+                        </select>
+                    </div>
+                    {/* Tertiary Category Dropdown */}
+                    <div className="mb-3">
+                        <div className="flex justify-between items-end mb-1">
+                            <label className="block text-[10px] font-semibold text-gray-500 uppercase tracking-wider">Tertiary Category</label>
+                            <button
+                                onClick={() => openCreateCategoryModal(sectionType, sectionIndex, index, 'tertiary')}
+                                className="text-[10px] text-indigo-600 hover:text-indigo-800 font-medium flex items-center"
+                            >
+                                <Plus className="h-3 w-3 mr-0.5" /> New
+                            </button>
+                        </div>
+                        <select
+                            value={card.tertiaryCategoryId}
+                            onChange={(e) => handleCategorySelectChange(e, sectionType, sectionIndex, index, 'tertiary')}
+                            className="block w-full px-2 py-1.5 text-xs border-gray-300 rounded focus:ring-indigo-500 focus:border-indigo-500 disabled:bg-gray-100 disabled:text-gray-400"
+                            disabled={!card.subCategoryId}
+                        >
+                            <option value="">Select tertiary...</option>
+                            {tertiaryCats.map(t => (
+                                <option key={t.id} value={t.id}>{t.name}</option>
                             ))}
                         </select>
                     </div>
@@ -874,6 +941,32 @@ const SellerHomepageControls = () => {
                                                                 >
                                                                     <option value="">Select Sub-Category...</option>
                                                                     {subCats.map(sub => <option key={sub.id} value={sub.id}>{sub.name}</option>)}
+                                                                </select>
+                                                                <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 pointer-events-none" />
+                                                            </div>
+                                                        </div>
+
+                                                        <div className="space-y-1.5">
+                                                            <div className="flex justify-between items-center">
+                                                                <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Tertiary Category</label>
+                                                                <button
+                                                                    onClick={() => openCreateCategoryModal('top_deal', null, index, 'top_deal_tertiary')}
+                                                                    className="text-[10px] font-bold text-indigo-600 hover:text-indigo-800 flex items-center gap-1 hover:bg-indigo-50 px-2 py-0.5 rounded transition-colors"
+                                                                >
+                                                                    <Plus className="h-3 w-3" /> Create New
+                                                                </button>
+                                                            </div>
+                                                            <div className="relative">
+                                                                <select
+                                                                    value={deal.tertiaryCategoryId}
+                                                                    onChange={(e) => handleCategorySelectChange(e, null, null, index, 'top_deal_tertiary')}
+                                                                    className="block w-full pl-4 pr-10 py-2.5 text-sm border-gray-300 rounded-xl focus:ring-indigo-500 focus:border-indigo-500 appearance-none bg-white disabled:bg-gray-100 disabled:text-gray-400"
+                                                                    disabled={!deal.subCategoryId}
+                                                                >
+                                                                    <option value="">Select Tertiary...</option>
+                                                                    {(subCats.find(s => s.id === deal.subCategoryId)?.subCategories || []).map(t => (
+                                                                        <option key={t.id} value={t.id}>{t.name}</option>
+                                                                    ))}
                                                                 </select>
                                                                 <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 pointer-events-none" />
                                                             </div>

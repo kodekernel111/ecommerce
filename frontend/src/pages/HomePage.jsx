@@ -1,6 +1,6 @@
 import React from 'react';
 import Navbar from '../components/Navbar';
-import ProductList from '../components/ProductList';
+
 import CartSidebar from '../components/CartSidebar';
 import HeroCarousel from '../components/HeroCarousel';
 import Footer from '../components/Footer';
@@ -13,19 +13,14 @@ const HomePage = () => {
             <Navbar />
             <CartSidebar />
             <main className="flex-grow">
-                <div className="max-w-7xl mx-auto pt-6 px-4 sm:px-6 lg:px-8 space-y-6">
+                <div className="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8 space-y-6 pb-20">
                     <HeroCarousel />
                     <TopDealsSection />
                     <HomeCategorySection />
                 </div>
-                <div className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
-                    <div className="px-4 py-6 sm:px-0">
-                        <ProductList />
-                    </div>
-                </div>
             </main>
             <Footer />
-        </div>
+        </div >
     );
 };
 

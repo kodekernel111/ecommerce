@@ -26,6 +26,8 @@ public class AuthenticationService {
                                 .email(request.getEmail())
                                 .password(passwordEncoder.encode(request.getPassword()))
                                 .role(request.getRole())
+                                .name(request.getName())
+                                .phone(request.getPhone())
                                 .build();
                 repository.save(user);
                 var jwtToken = jwtService.generateToken(user);
@@ -33,6 +35,7 @@ public class AuthenticationService {
                                 .token(jwtToken)
                                 .userId(user.getId().toString())
                                 .role(user.getRole().name())
+                                .name(user.getName())
                                 .build();
         }
 
@@ -48,6 +51,7 @@ public class AuthenticationService {
                                 .token(jwtToken)
                                 .userId(user.getId().toString())
                                 .role(user.getRole().name())
+                                .name(user.getName())
                                 .build();
         }
 }

@@ -5,6 +5,7 @@ import { removeFromCart, updateQuantity } from '../features/cart/cartSlice';
 import { Trash2, Plus, Minus, ArrowLeft, ShoppingBag } from 'lucide-react';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
+import LazyImage from '../components/LazyImage';
 
 const CartPage = () => {
     const dispatch = useDispatch();
@@ -47,7 +48,7 @@ const CartPage = () => {
                             {items.map((item) => (
                                 <li key={item.id} className="flex py-6 sm:py-10">
                                     <div className="flex-shrink-0">
-                                        <img
+                                        <LazyImage
                                             src={item.image}
                                             alt={item.name}
                                             className="w-24 h-24 rounded-md object-center object-cover sm:w-32 sm:h-32"

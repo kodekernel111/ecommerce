@@ -22,7 +22,10 @@ public class ProductSpecification {
                     cb.like(cb.lower(root.get("name")), likePattern),
                     cb.like(cb.lower(root.get("description")), likePattern),
                     cb.like(cb.lower(root.get("brand")), likePattern),
-                    cb.like(cb.lower(root.get("sku")), likePattern));
+                    cb.like(cb.lower(root.get("sku")), likePattern),
+                    cb.like(cb.lower(root.get("category")), likePattern),
+                    cb.like(cb.lower(root.get("subCategory")), likePattern),
+                    cb.like(cb.lower(root.get("tertiaryCategory")), likePattern));
         };
     }
 
@@ -30,7 +33,13 @@ public class ProductSpecification {
         return (root, query, cb) -> {
             if (!StringUtils.hasText(category))
                 return null;
-            return cb.equal(root.get("category"), category);
+            String likePattern = "%" + category.toLowerCase() + "%";
+            return cb.or(
+                    cb.equal(root.get("category"), category),
+                    cb.equal(root.get("subCategory"), category),
+                    cb.equal(root.get("tertiaryCategory"), category),
+                    cb.like(cb.lower(root.get("name")), likePattern),
+                    cb.like(cb.lower(root.get("brand")), likePattern));
         };
     }
 
