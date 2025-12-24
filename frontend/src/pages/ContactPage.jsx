@@ -19,7 +19,7 @@ const ContactPage = () => {
                             <Mail className="h-12 w-12" />
                         </div>
                         <h3 className="text-lg font-medium text-gray-900">Email</h3>
-                        <p className="mt-2 text-gray-500">support@chorbazaar.com</p>
+                        <p className="mt-2 text-gray-500">support@shopit.com</p>
                     </div>
                     <div className="bg-white p-8 rounded-lg shadow-sm">
                         <div className="mx-auto h-12 w-12 text-indigo-600 mb-4">

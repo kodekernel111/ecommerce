@@ -7,7 +7,7 @@ const Footer = () => {
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
                     <div>
-                        <h3 className="text-lg font-semibold mb-4">ChorBazaar</h3>
+                        <h3 className="text-lg font-semibold mb-4">ShopIt</h3>
                         <p className="text-gray-400 text-sm">
                             Your one-stop shop for everything you need. Quality products, great prices.
                         </p>
@@ -27,12 +27,12 @@ const Footer = () => {
                         <p className="text-gray-400 text-sm">
                             123 Commerce St.<br />
                             Cityville, ST 12345<br />
-                            Email: support@chorbazaar.com
+                            Email: support@shopit.com
                         </p>
                     </div>
                 </div>
                 <div className="mt-8 border-t border-gray-700 pt-8 text-center text-sm text-gray-400">
-                    &copy; {new Date().getFullYear()} ChorBazaar. All rights reserved.
+                    &copy; {new Date().getFullYear()} ShopIt. All rights reserved.
                 </div>
             </div>
         </footer>

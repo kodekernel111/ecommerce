@@ -94,7 +94,7 @@ const Navbar = ({ showCategories = true }) => {
                     <div className="flex items-center">
                         <Link to={user?.role === 'SELLER' ? '/seller' : '/'} className="flex-shrink-0 flex items-center gap-2">
                             <Store className="h-8 w-8 text-indigo-600" />
-                            <span className="font-bold text-xl text-gray-900">ChorBazaar</span>
+                            <span className="font-bold text-xl text-gray-900">ShopIt</span>
                         </Link>
                         <div className="hidden md:ml-6 md:flex md:space-x-8">
                             {user?.role !== 'SELLER' && (

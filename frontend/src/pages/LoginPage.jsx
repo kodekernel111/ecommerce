@@ -45,9 +45,9 @@ const LoginPage = () => {
                 <div className="sm:mx-auto sm:w-full sm:max-w-md">
                     <Link to="/" className="flex justify-center items-center gap-2">
                         <Store className="h-10 w-10 text-indigo-600" />
-                        <span className="font-bold text-2xl text-gray-900">ChorBazaar</span>
+                        <span className="font-bold text-2xl text-gray-900">ShopIt</span>
                     </Link>
-                    <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">Sign in to ChorBazaar</h2>
+                    <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">Sign in to ShopIt</h2>
                     <p className="mt-2 text-center text-sm text-gray-600">
                         Or{' '}
                         <Link to="/" className="font-medium text-indigo-600 hover:text-indigo-500">

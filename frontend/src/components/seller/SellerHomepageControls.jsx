@@ -28,6 +28,8 @@ const SellerHomepageControls = () => {
     // Pagination State
     const [topDealsPage, setTopDealsPage] = useState(1);
     const [topDealsPerPage, setTopDealsPerPage] = useState(5);
+    const [featuredPage, setFeaturedPage] = useState(1);
+    const [featuredPerPage, setFeaturedPerPage] = useState(4);
 
     // Existing Featured Sections
     const [existingSections, setExistingSections] = useState([]);
@@ -1007,177 +1009,231 @@ const SellerHomepageControls = () => {
             </div>
 
             {/* List of Existing Featured Sections */}
-            <div className="space-y-4">
-                <h3 className="text-lg font-bold text-gray-900">Active Featured Sections</h3>
-                {existingSections.length === 0 && <p className="text-sm text-gray-500">No sections added yet.</p>}
+            <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+                <div className="p-5 border-b border-gray-100 bg-gray-50 flex flex-col sm:flex-row justify-between items-center gap-4">
+                    <div className="flex items-center gap-2">
+                        <Layers className="h-5 w-5 text-indigo-600" />
+                        <h3 className="font-semibold text-gray-900">Active Featured Sections</h3>
+                    </div>
 
-                {existingSections.map((section, idx) => (
-                    <div key={idx} className={`bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden ${!section.active ? 'opacity-75' : ''} `}>
-                        <div className="p-5 border-b border-gray-100 bg-gray-50 flex items-center justify-between cursor-pointer" onClick={() => setOpenSectionIndex(openSectionIndex === idx ? null : idx)}>
-                            <div className="flex items-center gap-3">
-                                <Layout className={`h-5 w-5 ${section.active ? 'text-indigo-600' : 'text-gray-400'} `} />
-                                <div>
-                                    <h3 className={`font-semibold ${section.active ? 'text-gray-900' : 'text-gray-500'} `}>{section.title || 'Untitled Section'}</h3>
-                                    <p className="text-xs text-gray-500">{categories.find(c => c.id === section.mainCategoryId)?.name || 'No Category'}</p>
-                                </div>
+                    {/* Featured Sections Pagination Controls */}
+                    {existingSections.length > 0 && (
+                        <div className="flex items-center gap-4">
+                            <div className="flex items-center gap-2">
+                                <span className="text-xs font-medium text-gray-500 uppercase tracking-wider">Show</span>
+                                <select
+                                    value={featuredPerPage}
+                                    onChange={(e) => { setFeaturedPerPage(Number(e.target.value)); setFeaturedPage(1); }}
+                                    className="border-gray-300 rounded-md text-xs py-1 pl-2 pr-7 focus:ring-indigo-500 focus:border-indigo-500 bg-white"
+                                >
+                                    <option value={4}>4</option>
+                                    <option value={8}>8</option>
+                                    <option value={12}>12</option>
+                                </select>
                             </div>
-                            <div className="flex items-center gap-3">
-                                {/* Section Toggle Switch */}
-                                <div onClick={(e) => e.stopPropagation()}>
+                            <div className="flex items-center gap-2">
+                                <span className="text-xs text-gray-500 font-medium">
+                                    {Math.min((featuredPage - 1) * featuredPerPage + 1, existingSections.length)} - {Math.min(featuredPage * featuredPerPage, existingSections.length)} / {existingSections.length}
+                                </span>
+                                <div className="flex gap-1">
                                     <button
-                                        onClick={() => handleExistingSectionUpdate(idx, 'active', !section.active)}
-                                        className={`relative inline-flex h-5 w-9 border-2 border-transparent rounded-full transition-colors focus:outline-none ${section.active ? 'bg-indigo-600' : 'bg-gray-300'} `}
-                                        title={section.active ? "Section Active" : "Section Inactive"}
+                                        onClick={() => setFeaturedPage(p => Math.max(1, p - 1))}
+                                        disabled={featuredPage === 1}
+                                        className="p-1 rounded hover:bg-gray-200 disabled:opacity-50 disabled:hover:bg-transparent transition-colors"
                                     >
-                                        <span className={`inline-block h-4 w-4 rounded-full bg-white transform ring-0 transition-transform ${section.active ? 'translate-x-4' : 'translate-x-0'} `} />
+                                        <ChevronLeft className="h-4 w-4 text-gray-600" />
+                                    </button>
+                                    <button
+                                        onClick={() => setFeaturedPage(p => Math.min(Math.ceil(existingSections.length / featuredPerPage), p + 1))}
+                                        className="p-1 rounded hover:bg-gray-200 disabled:opacity-50 disabled:hover:bg-transparent transition-colors"
+                                    >
+                                        <ChevronRight className="h-4 w-4 text-gray-600" />
                                     </button>
                                 </div>
-
-                                <div className="h-5 w-px bg-gray-300 mx-1"></div>
-
-                                <button onClick={(e) => { e.stopPropagation(); deleteSection(idx); }} className="p-2 text-gray-400 hover:text-red-600"><Trash2 className="h-4 w-4" /></button>
-                                {openSectionIndex === idx ? <ChevronUp className="h-5 w-5 text-gray-400" /> : <ChevronDown className="h-5 w-5 text-gray-400" />}
-                            </div>
-                        </div>
-                        {openSectionIndex === idx && (
-                            <div className={`p-5 space-y-6 ${!section.active ? 'pointer-events-none opacity-60' : ''} `}>
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                    <div>
-                                        <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5">Section Title</label>
-                                        <input type="text" value={section.title} onChange={(e) => handleExistingSectionUpdate(idx, 'title', e.target.value)} className="block w-full px-3 py-2 text-sm border-gray-300 rounded-lg shadow-sm" />
-                                    </div>
-                                    <div>
-                                        <div className="flex justify-between items-end mb-1.5">
-                                            <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider">Main Category</label>
-                                            <button
-                                                onClick={() => openCreateCategoryModal('existing', idx, null, 'main')}
-                                                className="text-xs text-indigo-600 hover:text-indigo-800 font-medium flex items-center"
-                                            >
-                                                <Plus className="h-3 w-3 mr-0.5" /> New Main Category
-                                            </button>
-                                        </div>
-                                        <select
-                                            value={section.mainCategoryId}
-                                            onChange={(e) => handleCategorySelectChange(e, 'existing', idx, null, 'main')}
-                                            className="block w-full px-3 py-2 text-sm border-gray-300 rounded-lg shadow-sm"
-                                        >
-                                            <option value="">Select Category...</option>
-                                            {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-                                        </select>
-                                    </div>
-                                </div>
-                                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
-                                    {section.cards.map((card, cIdx) => renderCardInputs(card, cIdx, 'existing', idx))}
-                                </div>
-                                <div className="flex justify-end border-t border-gray-100 pt-4">
-                                    <button onClick={() => saveAll()} className="flex items-center text-sm font-medium text-indigo-600 hover:text-indigo-800"><Save className="h-4 w-4 mr-2" /> Save Section Changes</button>
-                                </div>
-                            </div>
-                        )}
-                    </div>
-                ))}
-            </div>
-
-            {/* Add New Section Form */}
-            <div className="bg-white rounded-xl shadow-sm border-2 border-dashed border-gray-300 overflow-hidden">
-                <div className="p-5 border-b border-gray-100 bg-gray-50/50 flex items-center gap-2">
-                    <Plus className="h-5 w-5 text-indigo-600" />
-                    <h3 className="font-semibold text-gray-900">Add New Featured Section</h3>
-                </div>
-                <div className="p-5 space-y-6">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div>
-                            <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5">Main Section Title</label>
-                            <input
-                                type="text"
-                                value={newSection.title}
-                                onChange={(e) => handleNewSectionChange('title', e.target.value)}
-                                className="block w-full px-3 py-2 text-sm border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 shadow-sm"
-                                placeholder="e.g. Summer Essentials"
-                            />
-                        </div>
-                        <div>
-                            <div className="flex justify-between items-end mb-1.5">
-                                <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider">Select Main Category</label>
-                                <button
-                                    onClick={() => openCreateCategoryModal('new', null, null, 'main')}
-                                    className="text-xs text-indigo-600 hover:text-indigo-800 font-medium flex items-center"
-                                >
-                                    <Plus className="h-3 w-3 mr-0.5" /> New Main Category
-                                </button>
-                            </div>
-                            <select
-                                value={newSection.mainCategoryId}
-                                onChange={(e) => handleCategorySelectChange(e, 'new', null, null, 'main')}
-                                className="block w-full px-3 py-2 text-sm border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 shadow-sm"
-                            >
-                                <option value="">Select a category...</option>
-                                {categories.map(cat => (
-                                    <option key={cat.id} value={cat.id}>{cat.name}</option>
-                                ))}
-                            </select>
-                        </div>
-                    </div>
-
-                    {newSection.mainCategoryId && (
-                        <div className="space-y-4">
-                            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
-                                {newSection.cards.map((card, index) => renderCardInputs(card, index, 'new'))}
-                            </div>
-                            <div className="flex justify-end pt-4 border-t border-gray-100">
-                                <button
-                                    onClick={handleAddSection}
-                                    className="inline-flex items-center px-4 py-2 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors"
-                                >
-                                    <Save className="h-4 w-4 mr-2" />
-                                    Save & Add Section
-                                </button>
                             </div>
                         </div>
                     )}
                 </div>
-            </div>
 
-            <input
-                type="file"
-                ref={fileInputRef}
-                className="hidden"
-                onChange={handleFileChange}
-                accept="image/*"
-            />
+                <div className="p-5 space-y-4 bg-gray-50/50">
+                    {existingSections.length === 0 && <p className="text-sm text-gray-500 text-center py-4">No sections added yet.</p>}
 
-            {/* Create Category Modal */}
-            {showCreateCategoryModal && (
-                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-                    <div className="bg-white rounded-lg p-6 max-w-sm w-full mx-4 shadow-xl">
-                        <h3 className="text-lg font-bold mb-4">
-                            Create New {parentCategoryForCreation ? 'Sub-Category' : 'Category'}
-                        </h3>
-                        <input
-                            type="text"
-                            value={newCategoryName}
-                            onChange={(e) => setNewCategoryName(e.target.value)}
-                            className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm mb-4"
-                            placeholder="Enter Name..."
-                            autoFocus
-                        />
-                        <div className="flex justify-end gap-2">
-                            <button
-                                onClick={() => { setShowCreateCategoryModal(false); setPendingSelection(null); }}
-                                className="px-4 py-2 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200"
-                            >
-                                Cancel
-                            </button>
-                            <button
-                                onClick={handleCreateCategorySubmit}
-                                className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 font-medium"
-                            >
-                                Create
-                            </button>
+                    {existingSections
+                        .slice((featuredPage - 1) * featuredPerPage, featuredPage * featuredPerPage)
+                        .map((section, idx) => {
+                            // Calculate actual index in the full array
+                            const actualIndex = (featuredPage - 1) * featuredPerPage + idx;
+                            return (
+                                <div key={actualIndex} className={`bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden ${!section.active ? 'opacity-75' : ''} group hover:shadow-md transition-shadow`}>
+                                    <div className="p-4 border-b border-gray-100 bg-white flex items-center justify-between cursor-pointer" onClick={() => setOpenSectionIndex(openSectionIndex === actualIndex ? null : actualIndex)}>
+                                        <div className="flex items-center gap-3">
+                                            <div className={`p-2 rounded-lg ${section.active ? 'bg-indigo-50 text-indigo-600' : 'bg-gray-100 text-gray-400'}`}>
+                                                <Layout className="h-5 w-5" />
+                                            </div>
+                                            <div>
+                                                <h3 className={`font-semibold text-sm ${section.active ? 'text-gray-900' : 'text-gray-500'} `}>{section.title || 'Untitled Section'}</h3>
+                                                <p className="text-xs text-gray-500">{categories.find(c => c.id === section.mainCategoryId)?.name || 'No Category'}</p>
+                                            </div>
+                                        </div>
+                                        <div className="flex items-center gap-3">
+                                            {/* Section Toggle Switch */}
+                                            <div onClick={(e) => e.stopPropagation()}>
+                                                <button
+                                                    onClick={() => handleExistingSectionUpdate(actualIndex, 'active', !section.active)}
+                                                    className={`relative inline-flex h-5 w-9 border-2 border-transparent rounded-full transition-colors focus:outline-none ${section.active ? 'bg-indigo-600' : 'bg-gray-300'} `}
+                                                    title={section.active ? "Section Active" : "Section Inactive"}
+                                                >
+                                                    <span className={`inline-block h-4 w-4 rounded-full bg-white transform ring-0 transition-transform ${section.active ? 'translate-x-4' : 'translate-x-0'} `} />
+                                                </button>
+                                            </div>
+
+                                            <div className="h-5 w-px bg-gray-300 mx-1"></div>
+
+                                            <button onClick={(e) => { e.stopPropagation(); deleteSection(actualIndex); }} className="p-2 text-gray-400 hover:text-red-600 rounded-full hover:bg-red-50 transition-colors"><Trash2 className="h-4 w-4" /></button>
+                                            {openSectionIndex === actualIndex ? <ChevronUp className="h-5 w-5 text-gray-400" /> : <ChevronDown className="h-5 w-5 text-gray-400" />}
+                                        </div>
+                                    </div>
+                                    {openSectionIndex === actualIndex && (
+                                        <div className={`p-5 space-y-6 ${!section.active ? 'pointer-events-none opacity-60' : ''} `}>
+                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                                <div>
+                                                    <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5">Section Title</label>
+                                                    <input type="text" value={section.title} onChange={(e) => handleExistingSectionUpdate(actualIndex, 'title', e.target.value)} className="block w-full px-3 py-2 text-sm border-gray-300 rounded-lg shadow-sm" />
+                                                </div>
+                                                <div>
+                                                    <div className="flex justify-between items-end mb-1.5">
+                                                        <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider">Main Category</label>
+                                                        <button
+                                                            onClick={() => openCreateCategoryModal('existing', actualIndex, null, 'main')}
+                                                            className="text-xs text-indigo-600 hover:text-indigo-800 font-medium flex items-center"
+                                                        >
+                                                            <Plus className="h-3 w-3 mr-0.5" /> New Main Category
+                                                        </button>
+                                                    </div>
+                                                    <select
+                                                        value={section.mainCategoryId}
+                                                        onChange={(e) => handleCategorySelectChange(e, 'existing', actualIndex, null, 'main')}
+                                                        className="block w-full px-3 py-2 text-sm border-gray-300 rounded-lg shadow-sm"
+                                                    >
+                                                        <option value="">Select Category...</option>
+                                                        {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                                                    </select>
+                                                </div>
+                                            </div>
+                                            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
+                                                {section.cards.map((card, cIdx) => renderCardInputs(card, cIdx, 'existing', actualIndex))}
+                                            </div>
+                                            <div className="flex justify-end border-t border-gray-100 pt-4">
+                                                <button onClick={() => saveAll()} className="flex items-center text-sm font-medium text-indigo-600 hover:text-indigo-800"><Save className="h-4 w-4 mr-2" /> Save Section Changes</button>
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+                            );
+                        })}
+                </div>
+
+                {/* Add New Section Form */}
+                <div className="bg-white rounded-xl shadow-sm border-2 border-dashed border-gray-300 overflow-hidden">
+                    <div className="p-5 border-b border-gray-100 bg-gray-50/50 flex items-center gap-2">
+                        <Plus className="h-5 w-5 text-indigo-600" />
+                        <h3 className="font-semibold text-gray-900">Add New Featured Section</h3>
+                    </div>
+                    <div className="p-5 space-y-6">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div>
+                                <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5">Main Section Title</label>
+                                <input
+                                    type="text"
+                                    value={newSection.title}
+                                    onChange={(e) => handleNewSectionChange('title', e.target.value)}
+                                    className="block w-full px-3 py-2 text-sm border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 shadow-sm"
+                                    placeholder="e.g. Summer Essentials"
+                                />
+                            </div>
+                            <div>
+                                <div className="flex justify-between items-end mb-1.5">
+                                    <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider">Select Main Category</label>
+                                    <button
+                                        onClick={() => openCreateCategoryModal('new', null, null, 'main')}
+                                        className="text-xs text-indigo-600 hover:text-indigo-800 font-medium flex items-center"
+                                    >
+                                        <Plus className="h-3 w-3 mr-0.5" /> New Main Category
+                                    </button>
+                                </div>
+                                <select
+                                    value={newSection.mainCategoryId}
+                                    onChange={(e) => handleCategorySelectChange(e, 'new', null, null, 'main')}
+                                    className="block w-full px-3 py-2 text-sm border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 shadow-sm"
+                                >
+                                    <option value="">Select a category...</option>
+                                    {categories.map(cat => (
+                                        <option key={cat.id} value={cat.id}>{cat.name}</option>
+                                    ))}
+                                </select>
+                            </div>
                         </div>
+
+                        {newSection.mainCategoryId && (
+                            <div className="space-y-4">
+                                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
+                                    {newSection.cards.map((card, index) => renderCardInputs(card, index, 'new'))}
+                                </div>
+                                <div className="flex justify-end pt-4 border-t border-gray-100">
+                                    <button
+                                        onClick={handleAddSection}
+                                        className="inline-flex items-center px-4 py-2 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors"
+                                    >
+                                        <Save className="h-4 w-4 mr-2" />
+                                        Save & Add Section
+                                    </button>
+                                </div>
+                            </div>
+                        )}
                     </div>
                 </div>
-            )}
+
+                <input
+                    type="file"
+                    ref={fileInputRef}
+                    className="hidden"
+                    onChange={handleFileChange}
+                    accept="image/*"
+                />
+
+                {/* Create Category Modal */}
+                {showCreateCategoryModal && (
+                    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+                        <div className="bg-white rounded-lg p-6 max-w-sm w-full mx-4 shadow-xl">
+                            <h3 className="text-lg font-bold mb-4">
+                                Create New {parentCategoryForCreation ? 'Sub-Category' : 'Category'}
+                            </h3>
+                            <input
+                                type="text"
+                                value={newCategoryName}
+                                onChange={(e) => setNewCategoryName(e.target.value)}
+                                className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm mb-4"
+                                placeholder="Enter Name..."
+                                autoFocus
+                            />
+                            <div className="flex justify-end gap-2">
+                                <button
+                                    onClick={() => { setShowCreateCategoryModal(false); setPendingSelection(null); }}
+                                    className="px-4 py-2 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200"
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    onClick={handleCreateCategorySubmit}
+                                    className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 font-medium"
+                                >
+                                    Create
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                )}
+            </div>
         </div>
     );
 };
