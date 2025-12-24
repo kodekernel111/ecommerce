@@ -399,12 +399,48 @@ public class OrderService {
         }
     }
 
-    // 5. GET USER ORDERS
-    public List<OrderSummaryDTO> getUserOrders(String username) {
-        List<Order> orders = orderRepo.findByCustomerUsernameOrderByOrderDateDesc(username);
-        List<OrderSummaryDTO> summaries = new ArrayList<>();
+    // 5. GET USER ORDERS (PAGINATED & FILTERED)
+    public OrderListResponseDTO getUserOrdersPaged(String username, int page, int size, String status,
+            String timeframe) {
+        Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "orderDate"));
 
-        for (Order o : orders) {
+        Specification<Order> spec = OrderSpecification.hasCustomerUsername(username);
+
+        if (status != null && !status.isEmpty() && !status.equals("ALL")) {
+            spec = spec.and(OrderSpecification.hasStatus(status));
+        }
+
+        if (timeframe != null && !timeframe.isEmpty()) {
+            LocalDate now = LocalDate.now();
+            LocalDate startDate = null;
+            switch (timeframe) {
+                case "last30days":
+                    startDate = now.minusDays(30);
+                    break;
+                case "last3months":
+                    startDate = now.minusMonths(3);
+                    break;
+                case "2024":
+                    // Example specific year logic
+                    spec = spec.and(
+                            OrderSpecification.createdBetween(LocalDate.of(2024, 1, 1), LocalDate.of(2024, 12, 31)));
+                    break;
+                case "2025":
+                    spec = spec.and(
+                            OrderSpecification.createdBetween(LocalDate.of(2025, 1, 1), LocalDate.of(2025, 12, 31)));
+                    break;
+                default:
+                    break;
+            }
+            if (startDate != null) {
+                spec = spec.and(OrderSpecification.createdBetween(startDate, null));
+            }
+        }
+
+        Page<Order> ordersPage = orderRepo.findAll(spec, pageable);
+
+        List<OrderSummaryDTO> summaries = new ArrayList<>();
+        for (Order o : ordersPage.getContent()) {
             List<OrderItem> items = o.getItems();
             int itemCount = items != null ? items.size() : 0;
             String itemsSummary = "No items";
@@ -423,17 +459,14 @@ public class OrderService {
                 if (p != null) {
                     image = p.getImage1() != null ? p.getImage1() : p.getImage();
                     if (p.getSeller() != null) {
-                        sellerName = p.getSeller().getName(); // Get actual seller name
+                        sellerName = p.getSeller().getName();
                     }
                 }
             }
 
-            // String customerName = (o.getCustomer() != null) ? o.getCustomer().getName() :
-            // "Unknown Customer";
-
             summaries.add(new OrderSummaryDTO(
                     o.getId() != null ? o.getId().toString() : "",
-                    sellerName, // Use seller name instead of customer name
+                    sellerName,
                     o.getOrderDate() != null ? o.getOrderDate().toString() : "",
                     itemCount,
                     o.getTotalAmount(),
@@ -441,6 +474,12 @@ public class OrderService {
                     itemsSummary,
                     image));
         }
-        return summaries;
+
+        return new OrderListResponseDTO(summaries, ordersPage.getTotalPages(), ordersPage.getTotalElements());
+    }
+
+    // Deprecated simple list version (can be removed later or kept for other uses)
+    public List<OrderSummaryDTO> getUserOrders(String username) {
+        return getUserOrdersPaged(username, 0, 100, null, null).getOrders();
     }
 }

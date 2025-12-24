@@ -30,12 +30,17 @@ public class OrderController {
     }
 
     @GetMapping("/my-orders")
-    public ResponseEntity<List<OrderSummaryDTO>> getUserOrders(@AuthenticationPrincipal UserDetails userDetails) {
+    public ResponseEntity<com.kodekernel.ecommerce.dto.OrderListResponseDTO> getUserOrders(
+            @AuthenticationPrincipal UserDetails userDetails,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(required = false) String status,
+            @RequestParam(required = false) String timeframe) {
         if (userDetails == null) {
             return ResponseEntity.status(401).build();
         }
-        List<OrderSummaryDTO> orders = orderService.getUserOrders(userDetails.getUsername());
-        return ResponseEntity.ok(orders);
+        return ResponseEntity
+                .ok(orderService.getUserOrdersPaged(userDetails.getUsername(), page, size, status, timeframe));
     }
 
     @GetMapping("/{orderId}")

@@ -57,7 +57,12 @@ public class OrderSpecification {
                 return criteriaBuilder.greaterThanOrEqualTo(root.get("orderDate"), startDate);
             }
             // endDate != null
+            // endDate != null
             return criteriaBuilder.lessThanOrEqualTo(root.get("orderDate"), endDate);
         };
+    }
+
+    public static Specification<Order> hasCustomerUsername(String username) {
+        return (root, query, criteriaBuilder) -> criteriaBuilder.equal(root.join("customer").get("username"), username);
     }
 }
