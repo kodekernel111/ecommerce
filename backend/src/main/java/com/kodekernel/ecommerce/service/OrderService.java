@@ -12,6 +12,8 @@ import com.kodekernel.ecommerce.repository.ProductRepository;
 import com.kodekernel.ecommerce.repository.UserRepository;
 import com.kodekernel.ecommerce.repository.OrderSpecification;
 import com.kodekernel.ecommerce.dto.OrderListResponseDTO;
+import com.kodekernel.ecommerce.dto.CreateOrderRequestDTO;
+import com.kodekernel.ecommerce.dto.CreateOrderItemDTO;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.lang.NonNull;
@@ -169,10 +171,30 @@ public class OrderService {
                 itemDTOs);
     }
 
+    public OrderDetailDTO getOrderDetailForUser(String orderId, String username) {
+        UUID id = UUID.fromString(orderId);
+        Order order = orderRepo.findById(id)
+                .orElseThrow(() -> new RuntimeException("Order not found"));
+
+        if (!order.getCustomer().getUsername().equals(username)) {
+            throw new RuntimeException("Access Denied: You cannot view this order.");
+        }
+
+        return getOrderDetail(orderId);
+    }
+
     // 3. UPDATE ORDER STATUS
     public void updateOrderStatus(@NonNull String orderId, OrderStatus newStatus) {
 
-        Order order = orderRepo.findById(UUID.fromString(orderId))
+        // Validating UUID format to prevent unchecked conversion warning
+        UUID uuid;
+        try {
+            uuid = UUID.fromString(orderId);
+        } catch (IllegalArgumentException e) {
+            throw new RuntimeException("Invalid Order ID format");
+        }
+
+        Order order = orderRepo.findById(uuid)
                 .orElseThrow(() -> new RuntimeException("Order not found"));
 
         OrderStatus current = order.getStatus();
@@ -184,6 +206,125 @@ public class OrderService {
         order.setStatus(newStatus);
 
         orderRepo.save(order);
+    }
+
+    // 4. CREATE ORDER
+    public UUID createOrder(CreateOrderRequestDTO request, String username) {
+        // 1. Get User
+        User user = userRepo.findByUsernameOrEmail(username, username)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
+        // 2. Validate Payment Details & Simulate Processing
+        String paymentMethod = request.getPaymentMethod();
+        if (paymentMethod == null)
+            throw new RuntimeException("Payment method is required");
+
+        String transactionId = "TXN_" + UUID.randomUUID().toString().substring(0, 8).toUpperCase();
+
+        switch (paymentMethod.toLowerCase()) {
+            case "card":
+                if (request.getCardNumber() == null || request.getCardNumber().replace(" ", "").length() < 16) {
+                    throw new RuntimeException("Invalid Card Number");
+                }
+                if (request.getCardExpiry() == null || request.getCardCvc() == null) {
+                    throw new RuntimeException("Incomplete Card Details");
+                }
+                break;
+            case "upi":
+                if (request.getUpiId() == null || !request.getUpiId().contains("@")) {
+                    throw new RuntimeException("Invalid UPI ID");
+                }
+                break;
+            case "netbanking":
+                if (request.getBankName() == null || request.getBankName().isEmpty()) {
+                    throw new RuntimeException("Bank Name is required for NetBanking");
+                }
+                break;
+            case "paypal":
+            case "stripe":
+                // In a real app, we would verify a token from the frontend here.
+                // For now, we assume the redirect flow was successful.
+                break;
+            default:
+                throw new RuntimeException("Unsupported Payment Method: " + paymentMethod);
+        }
+
+        // 3. Create Address
+        Address address = new Address();
+        address.setFullName(request.getFullName());
+        address.setPhone(request.getPhone());
+        address.setLine1(request.getLine1());
+        address.setLine2(request.getLine2());
+        address.setCity(request.getCity());
+        address.setState(request.getState());
+        address.setPincode(request.getPincode());
+        address = addressRepo.save(address);
+
+        // 4. Create Order Object
+        Order order = new Order();
+        order.setCustomer(user);
+        order.setShippingAddress(address);
+        order.setOrderDate(LocalDate.now());
+        order.setStatus(OrderStatus.PENDING);
+        order.setPaymentMethod(paymentMethod);
+        order.setPaymentStatus("COMPLETED"); // Simulated success
+        order.setTransactionId(transactionId);
+        order.setShippingMethod("Standard");
+
+        order = orderRepo.save(order);
+
+        List<OrderItem> items = new ArrayList<>();
+        BigDecimal totalAmount = BigDecimal.ZERO;
+        UUID sellerId = null;
+
+        if (request.getItems() == null || request.getItems().isEmpty()) {
+            throw new RuntimeException("Order must contain at least one item");
+        }
+
+        // 5. Process Items
+        for (CreateOrderItemDTO itemDTO : request.getItems()) {
+            Product product = productRepo.findById(itemDTO.getProductId())
+                    .orElseThrow(() -> new RuntimeException("Product not found: " + itemDTO.getProductId()));
+
+            if (!product.getActive()) {
+                throw new RuntimeException("Product is not active: " + product.getName());
+            }
+
+            if (product.getQuantity() < itemDTO.getQuantity()) {
+                throw new RuntimeException("Insufficient stock for product: " + product.getName());
+            }
+
+            // Reduce Stock
+            product.setQuantity(product.getQuantity() - itemDTO.getQuantity());
+            productRepo.save(product);
+
+            OrderItem orderItem = new OrderItem();
+            orderItem.setOrder(order);
+            orderItem.setProduct(product);
+            orderItem.setQuantity(itemDTO.getQuantity());
+            orderItem.setPrice(BigDecimal.valueOf(product.getPrice()));
+
+            items.add(orderItem);
+            totalAmount = totalAmount.add(orderItem.getPrice().multiply(BigDecimal.valueOf(orderItem.getQuantity())));
+
+            if (sellerId == null) {
+                sellerId = product.getSellerId();
+            }
+        }
+
+        itemRepo.saveAll(items);
+
+        // Update Order with calculated totals
+        order.setItems(items);
+        order.setTotalAmount(totalAmount);
+        order.setSellerId(sellerId);
+
+        orderRepo.save(order);
+
+        // Update product metrics
+        productService.updateSalesMetrics(items);
+
+        return order.getId();
     }
 
     public void createDummyOrders(UUID sellerId) {
@@ -256,5 +397,50 @@ public class OrderService {
             order.setItems(items);
             orderRepo.save(order);
         }
+    }
+
+    // 5. GET USER ORDERS
+    public List<OrderSummaryDTO> getUserOrders(String username) {
+        List<Order> orders = orderRepo.findByCustomerUsernameOrderByOrderDateDesc(username);
+        List<OrderSummaryDTO> summaries = new ArrayList<>();
+
+        for (Order o : orders) {
+            List<OrderItem> items = o.getItems();
+            int itemCount = items != null ? items.size() : 0;
+            String itemsSummary = "No items";
+            String image = null;
+            String sellerName = "Unknown Seller";
+
+            if (items != null && !items.isEmpty()) {
+                OrderItem firstItem = items.get(0);
+                String productName = (firstItem.getProduct() != null) ? firstItem.getProduct().getName()
+                        : "Unknown Product";
+                itemsSummary = firstItem.getQuantity() + "x " + productName;
+                if (itemCount > 1) {
+                    itemsSummary += " + " + (itemCount - 1) + " others";
+                }
+                Product p = firstItem.getProduct();
+                if (p != null) {
+                    image = p.getImage1() != null ? p.getImage1() : p.getImage();
+                    if (p.getSeller() != null) {
+                        sellerName = p.getSeller().getName(); // Get actual seller name
+                    }
+                }
+            }
+
+            // String customerName = (o.getCustomer() != null) ? o.getCustomer().getName() :
+            // "Unknown Customer";
+
+            summaries.add(new OrderSummaryDTO(
+                    o.getId() != null ? o.getId().toString() : "",
+                    sellerName, // Use seller name instead of customer name
+                    o.getOrderDate() != null ? o.getOrderDate().toString() : "",
+                    itemCount,
+                    o.getTotalAmount(),
+                    o.getStatus() != null ? o.getStatus().name() : "PENDING",
+                    itemsSummary,
+                    image));
+        }
+        return summaries;
     }
 }

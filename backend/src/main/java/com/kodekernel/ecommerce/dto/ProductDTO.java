@@ -31,4 +31,6 @@ public class ProductDTO {
     private String returnPolicy;
     private String warranty;
     private java.util.Map<String, String> specifications;
+    private Double averageRating;
+    private Integer reviewCount;
 }

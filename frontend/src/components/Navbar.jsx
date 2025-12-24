@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { ShoppingCart, Store, Menu, User, Search, Heart, LogOut, Package, LayoutDashboard, LogIn } from 'lucide-react';
 import { useSelector, useDispatch } from 'react-redux';
 import { toggleCart } from '../features/cart/cartSlice';
+import { logout } from '../features/auth/authSlice';
 import { Link, useNavigate } from 'react-router-dom';
 
 import api from '../api/axios';
@@ -78,10 +79,12 @@ const Navbar = ({ showCategories = true }) => {
     };
 
     const handleLogout = () => {
-        // Implement logout logic here (e.g., clear auth state)
-        console.log('Logging out...');
+        dispatch(logout());
+        localStorage.removeItem('token');
+        localStorage.removeItem('userId');
+        localStorage.removeItem('user');
         setIsUserMenuOpen(false);
-        navigate('/login');
+        navigate('/');
     };
 
     return (

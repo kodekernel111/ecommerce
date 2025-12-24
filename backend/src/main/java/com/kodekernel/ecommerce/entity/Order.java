@@ -40,6 +40,8 @@ public class Order {
     private UUID sellerId;
 
     private String paymentMethod;
+    private String paymentStatus;
+    private String transactionId;
     private String shippingMethod;
     private String notes;
 

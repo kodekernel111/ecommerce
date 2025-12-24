@@ -77,7 +77,11 @@ public class ProductSpecification {
         return (root, query, cb) -> {
             if (active == null)
                 return null;
-            return cb.equal(root.get("active"), active);
+            if (active) {
+                // Treat NULL as active for legacy data
+                return cb.or(cb.equal(root.get("active"), true), cb.isNull(root.get("active")));
+            }
+            return cb.equal(root.get("active"), false);
         };
     }
 
@@ -91,6 +95,22 @@ public class ProductSpecification {
             if (startDate != null)
                 return cb.greaterThanOrEqualTo(root.get("createdAt"), startDate);
             return cb.lessThanOrEqualTo(root.get("createdAt"), endDate);
+        };
+    }
+
+    public static Specification<Product> hasMinRating(Double rating) {
+        return (root, query, cb) -> {
+            if (rating == null || rating <= 0)
+                return null;
+            return cb.greaterThanOrEqualTo(root.get("averageRating"), rating);
+        };
+    }
+
+    public static Specification<Product> isInStock(Boolean inStock) {
+        return (root, query, cb) -> {
+            if (inStock == null || !inStock)
+                return null;
+            return cb.greaterThan(root.get("quantity"), 0);
         };
     }
 }

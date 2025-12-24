@@ -224,7 +224,9 @@ public class ProductService {
                 product.getSku(),
                 product.getReturnPolicy(),
                 product.getWarranty(),
-                product.getSpecifications());
+                product.getSpecifications(),
+                product.getAverageRating(),
+                product.getReviewCount());
     }
 
     private Product convertToEntity(ProductDTO productDTO) {
@@ -251,6 +253,8 @@ public class ProductService {
         product.setWarranty(productDTO.getWarranty());
         product.setSpecifications(productDTO.getSpecifications());
         product.setActive(productDTO.getActive());
+        product.setAverageRating(productDTO.getAverageRating());
+        product.setReviewCount(productDTO.getReviewCount());
         setProductImagesFromList(product, productDTO.getImages());
         return product;
     }
@@ -360,8 +364,7 @@ public class ProductService {
     }
 
     public Page<ProductDTO> browseProducts(int page, int size, String search, String category, Double minPrice,
-            Double maxPrice,
-            String sort) {
+            Double maxPrice, Double minRating, Boolean inStock, String sort) {
         Specification<Product> spec = Specification.where(ProductSpecification.isActive(true));
 
         if (search != null && !search.isEmpty()) {
@@ -373,6 +376,12 @@ public class ProductService {
         if (minPrice != null || maxPrice != null) {
             spec = spec.and(ProductSpecification.priceBetween(minPrice, maxPrice));
         }
+        if (minRating != null && minRating > 0) {
+            spec = spec.and(ProductSpecification.hasMinRating(minRating));
+        }
+        if (Boolean.TRUE.equals(inStock)) {
+            spec = spec.and(ProductSpecification.isInStock(true));
+        }
 
         Sort sortObj = Sort.by(Sort.Direction.DESC, "createdAt");
         if ("price-low-high".equals(sort)) {
@@ -381,8 +390,10 @@ public class ProductService {
             sortObj = Sort.by(Sort.Direction.DESC, "price");
         } else if ("top-deals".equals(sort)) {
             sortObj = Sort.by(Sort.Direction.DESC, "productMetric.topDealScore");
+        } else if ("rating".equals(sort)) {
+            sortObj = Sort.by(Sort.Direction.DESC, "averageRating");
         } else if ("relevance".equals(sort)) {
-            // Default sort is fine, or arguably by popularity
+            // Default sort
         }
 
         Pageable pageable = PageRequest.of(page, size, sortObj);

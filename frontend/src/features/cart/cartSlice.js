@@ -30,21 +30,44 @@ const cartSlice = createSlice({
             const quantityToAdd = newItem.quantity || 1;
 
             if (!existingItem) {
+                // Ensure we don't start with more than stock
+                const safeQuantity = newItem.stock && quantityToAdd > newItem.stock ? newItem.stock : quantityToAdd;
+
                 state.items.push({
                     id: newItem.id,
                     name: newItem.name,
                     price: newItem.price,
                     image: newItem.image,
-                    quantity: quantityToAdd,
-                    totalPrice: newItem.price * quantityToAdd,
+                    quantity: safeQuantity,
+                    stock: newItem.stock, // Store stock limit
+                    totalPrice: newItem.price * safeQuantity,
                 });
-                state.totalQuantity += quantityToAdd;
+                state.totalQuantity += safeQuantity;
+                state.totalAmount += newItem.price * safeQuantity;
             } else {
-                existingItem.quantity += quantityToAdd;
-                existingItem.totalPrice += newItem.price * quantityToAdd;
-                state.totalQuantity += quantityToAdd;
+                // Determine how much we can actually add
+                let safeQuantityToAdd = quantityToAdd;
+                if (existingItem.stock) {
+                    const availableSpace = existingItem.stock - existingItem.quantity;
+                    if (availableSpace <= 0) {
+                        return; // Cannot add any more
+                    }
+                    if (quantityToAdd > availableSpace) {
+                        safeQuantityToAdd = availableSpace;
+                    }
+                }
+
+                existingItem.quantity += safeQuantityToAdd;
+                existingItem.totalPrice += newItem.price * safeQuantityToAdd;
+
+                // Update stock if it changed in the backend (optional, but good to keep fresh)
+                if (newItem.stock !== undefined) {
+                    existingItem.stock = newItem.stock;
+                }
+
+                state.totalQuantity += safeQuantityToAdd;
+                state.totalAmount += newItem.price * safeQuantityToAdd;
             }
-            state.totalAmount += newItem.price * quantityToAdd;
         },
         removeFromCart: (state, action) => {
             const id = action.payload;
@@ -61,6 +84,11 @@ const cartSlice = createSlice({
             const existingItem = state.items.find((item) => item.id === id);
 
             if (existingItem && quantity > 0) {
+                // Check stock limit
+                if (existingItem.stock && quantity > existingItem.stock) {
+                    return; // Ignore update if exceeding stock
+                }
+
                 const quantityDiff = quantity - existingItem.quantity;
                 state.totalQuantity += quantityDiff;
                 state.totalAmount += quantityDiff * existingItem.price;
@@ -72,8 +100,13 @@ const cartSlice = createSlice({
         toggleCart: (state) => {
             state.isOpen = !state.isOpen;
         },
+        clearCart: (state) => {
+            state.items = [];
+            state.totalQuantity = 0;
+            state.totalAmount = 0;
+        },
     },
 });
 
-export const { addToCart, removeFromCart, updateQuantity, toggleCart } = cartSlice.actions;
+export const { addToCart, removeFromCart, updateQuantity, toggleCart, clearCart } = cartSlice.actions;
 export default cartSlice.reducer;

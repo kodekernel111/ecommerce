@@ -32,9 +32,18 @@ public class SecurityConfig {
                                                 .requestMatchers("/auth/**").permitAll()
                                                 .requestMatchers("/public/**").permitAll()
                                                 .requestMatchers("/seller/dummy-orders/**").permitAll()
-                                                .requestMatchers("/products/**").permitAll()
+                                                .requestMatchers("/products", "/products/**").permitAll()
+                                                .requestMatchers("/categories/**").permitAll()
                                                 .requestMatchers("/seller/**").hasAuthority("ROLE_SELLER")
+                                                .requestMatchers("/api/**").authenticated()
                                                 .anyRequest().authenticated())
+                                .httpBasic(Customizer.withDefaults()) // reliable fallback
+                                .exceptionHandling(
+                                                e -> e.authenticationEntryPoint((request, response, authException) -> {
+                                                        response.setStatus(401);
+                                                        response.getWriter().write(
+                                                                        "Unauthorized: " + authException.getMessage());
+                                                }))
                                 .sessionManagement(session -> session
                                                 .sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                                 .authenticationProvider(authenticationProvider)

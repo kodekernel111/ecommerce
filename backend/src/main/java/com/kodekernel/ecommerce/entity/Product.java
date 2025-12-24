@@ -29,7 +29,13 @@ public class Product {
     private String tertiaryCategory;
     private String image;
     private Boolean active = true;
+    private Double averageRating = 0.0;
+    private Integer reviewCount = 0;
     private UUID sellerId;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "sellerId", insertable = false, updatable = false)
+    private User seller;
 
     private String image1;
     private String image2;

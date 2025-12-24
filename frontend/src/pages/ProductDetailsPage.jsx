@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useNavigate } from 'react-router-dom';
 import { useSelector, useDispatch } from 'react-redux';
 import { addToCart } from '../features/cart/cartSlice';
 import api from '../api/axios';
@@ -16,7 +16,6 @@ import {
     Heart
 } from 'lucide-react';
 import Navbar from '../components/Navbar';
-import CartSidebar from '../components/CartSidebar';
 import Footer from '../components/Footer';
 import { useToast } from '../context/ToastContext';
 import LazyImage from '../components/LazyImage';
@@ -72,6 +71,7 @@ const DeliveryChecker = () => {
 
 const ProductDetailsPage = () => {
     const { id } = useParams();
+    const navigate = useNavigate();
     const dispatch = useDispatch();
     const [product, setProduct] = useState(null);
     const [isLoading, setIsLoading] = useState(true);
@@ -135,9 +135,25 @@ const ProductDetailsPage = () => {
         }
     }, [product]);
 
+    const { items } = useSelector((state) => state.cart);
+
     const handleAddToCart = () => {
-        dispatch(addToCart({ ...product, quantity }));
+        // Check if adding this quantity exceeds stock
+        const existingItem = items.find(item => item.id === product.id);
+        const currentQty = existingItem ? existingItem.quantity : 0;
+
+        if (currentQty + quantity > product.quantity) {
+            addToast(`Cannot add more. You already have ${currentQty} in cart and only ${product.quantity} are in stock.`, 'error');
+            return;
+        }
+
+        dispatch(addToCart({ ...product, quantity, stock: product.quantity }));
         addToast(`Added ${quantity} ${product.name} to cart`, 'success');
+    };
+
+    const handleBuyNow = () => {
+        const navigateItem = { ...product, quantity, stock: product.quantity };
+        navigate('/checkout', { state: { buyNowItem: navigateItem } });
     };
 
     // Check if user has already reviewed
@@ -204,7 +220,6 @@ const ProductDetailsPage = () => {
         return (
             <div className="min-h-screen bg-gray-50 flex flex-col">
                 <Navbar />
-                <CartSidebar />
                 <main className="flex-grow flex flex-col items-center justify-center">
                     <h2 className="text-2xl font-bold text-gray-900 mb-4">Product not found</h2>
                     <Link to="/" className="text-indigo-600 hover:text-indigo-500 flex items-center gap-2">
@@ -229,7 +244,6 @@ const ProductDetailsPage = () => {
     return (
         <div className="min-h-screen bg-white flex flex-col font-sans text-gray-900">
             <Navbar />
-            <CartSidebar />
 
             <main className="flex-grow max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full">
                 {/* Breadcrumbs */}
@@ -352,6 +366,7 @@ const ProductDetailsPage = () => {
                                     Add to Cart
                                 </button>
                                 <button
+                                    onClick={handleBuyNow}
                                     disabled={product.quantity === 0}
                                     className={`flex-1 px-8 py-3 rounded-lg font-semibold transition-colors shadow-sm ${product.quantity === 0 ? 'bg-gray-300 text-gray-500 cursor-not-allowed' : 'bg-gray-900 text-white hover:bg-gray-800'}`}
                                 >
@@ -577,9 +592,9 @@ const ProductDetailsPage = () => {
                         )}
                     </div>
                 </div>
-            </main>
+            </main >
             <Footer />
-        </div>
+        </div >
     );
 };
 

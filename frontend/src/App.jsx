@@ -8,7 +8,7 @@ import ProductDetailsPage from './pages/ProductDetailsPage';
 import LoginPage from './pages/LoginPage';
 import SignUpPage from './pages/SignUpPage';
 import SearchResultsPage from './pages/SearchResultsPage';
-import OrderHistoryPage from './pages/OrderHistoryPage';
+
 import AddProductPage from './pages/AddProductPage';
 import CartPage from './pages/CartPage';
 import CheckoutPage from './pages/CheckoutPage';
@@ -22,6 +22,10 @@ import TermsPage from './pages/TermsPage';
 import NotFoundPage from './pages/NotFoundPage';
 import ScrollToTop from './components/ScrollToTop';
 import BackToTopButton from './components/BackToTopButton';
+import CartSidebar from './components/CartSidebar';
+import OrderHistoryPage from './pages/OrderHistoryPage';
+import OrderDetailsBuyerPage from './pages/OrderDetailsBuyerPage';
+import ErrorBoundary from './components/ErrorBoundary';
 
 import { ToastProvider } from './context/ToastContext';
 
@@ -31,6 +35,7 @@ function App() {
       <Router>
         <ScrollToTop />
         <BackToTopButton />
+        <CartSidebar />
         <Routes>
           <Route path="/" element={<HomePage />} />
           <Route path="/seller" element={<SellerDashboard />} />
@@ -41,7 +46,12 @@ function App() {
           <Route path="/login" element={<LoginPage />} />
           <Route path="/signup" element={<SignUpPage />} />
           <Route path="/search" element={<SearchResultsPage />} />
-          <Route path="/orders" element={<OrderHistoryPage />} />
+          <Route path="/orders" element={
+            <ErrorBoundary>
+              <OrderHistoryPage />
+            </ErrorBoundary>
+          } />
+          <Route path="/orders/:orderId" element={<OrderDetailsBuyerPage />} />
           <Route path="/cart" element={<CartPage />} />
           <Route path="/checkout" element={<CheckoutPage />} />
           <Route path="/profile" element={<UserProfilePage />} />

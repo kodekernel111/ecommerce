@@ -24,6 +24,7 @@ const LoginPage = () => {
 
             localStorage.setItem('token', token);
             localStorage.setItem('userId', userId);
+            localStorage.setItem('user', JSON.stringify(userData));
 
             dispatch(loginSuccess({ ...response.data, email }));
             if (response.data.role === 'SELLER') {

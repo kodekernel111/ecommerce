@@ -18,13 +18,54 @@ const SearchResultsPage = () => {
     const [currentPage, setCurrentPage] = useState(initialPage);
     const [totalPages, setTotalPages] = useState(0);
 
+    // Filter State
+    const [filters, setFilters] = useState({
+        category: [],
+        maxPrice: 50000,
+        minRating: 0,
+        inStock: false
+    });
+
     useEffect(() => {
         const fetchSearchResults = async () => {
             setLoading(true);
             try {
-                // Fetch from backend search API
-                // Page is 0-indexed on backend, 1-indexed on frontend URL
-                const response = await api.get(`/products?search=${encodeURIComponent(query)}&sort=${sortBy}&size=9&page=${currentPage - 1}`);
+                // Construct Query Params
+                let url = `/products?search=${encodeURIComponent(query)}&sort=${sortBy}&size=9&page=${currentPage - 1}`;
+
+                if (filters.category.length > 0) {
+                    // Backend currently supports single category via this param, 
+                    // or we might need to update backend to support list.
+                    // For now, let's take the first one or if multiple, maybe iterate?
+                    // "hasCategory" spec uses EQUAL or LIKE.
+                    // If we want multiple, backend needs "in".
+                    // Let's just pass the first one for now if simple, or we can try passing same param multiple times if Spring supports it
+                    // But productController takes String category.
+                    // Let's stick to simple: if distinct categories, it might conflict.
+                    // Let's pass array join?
+                    // Actually, let's just pass the last selected one or refactor backend.
+                    // Implementation Plan didn't specifying backend 'IN' support.
+                    // Let's assume single category selection is safest for now or just pass it.
+                    // Re-reading ProductSpecification: uses "hasCategory". 
+                    // If we pass, it filters.
+                    if (filters.category.length === 1) {
+                        url += `&category=${encodeURIComponent(filters.category[0])}`;
+                    }
+                }
+
+                if (filters.maxPrice < 50000) {
+                    url += `&maxPrice=${filters.maxPrice}`;
+                }
+
+                if (filters.minRating > 0) {
+                    url += `&minRating=${filters.minRating}`;
+                }
+
+                if (filters.inStock) {
+                    url += `&inStock=true`;
+                }
+
+                const response = await api.get(url);
                 if (response.data && response.data.content) {
                     setFilteredProducts(response.data.content);
                     setTotalPages(response.data.totalPages);
@@ -43,9 +84,10 @@ const SearchResultsPage = () => {
         if (query) {
             fetchSearchResults();
         } else {
-            setFilteredProducts([]);
+            // If no query, we might still want to show products (browse mode)
+            fetchSearchResults();
         }
-    }, [query, sortBy, currentPage]);
+    }, [query, sortBy, currentPage, filters]);
 
     // Update URL when page changes
     useEffect(() => {
@@ -70,7 +112,7 @@ const SearchResultsPage = () => {
             <main className="flex-grow max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full">
                 <div className="flex items-baseline justify-between border-b border-gray-200 pb-6 mb-6">
                     <h1 className="text-2xl font-bold tracking-tight text-gray-900">
-                        Results for "{query}"
+                        {query ? `Results for "${query}"` : 'All Products'}
                     </h1>
                     <div className="flex items-center">
                         <div className="relative inline-block text-left">
@@ -99,7 +141,7 @@ const SearchResultsPage = () => {
 
                 <div className="flex items-start">
                     {/* Sidebar */}
-                    <FilterSidebar />
+                    <FilterSidebar filters={filters} setFilters={setFilters} />
 
                     {/* Mobile Filter Dialog (Simplified for now) */}
                     {showMobileFilters && (
@@ -118,7 +160,7 @@ const SearchResultsPage = () => {
                                     </button>
                                 </div>
                                 <div className="mt-4 px-4">
-                                    <FilterSidebar />
+                                    <FilterSidebar filters={filters} setFilters={setFilters} />
                                 </div>
                             </div>
                         </div>

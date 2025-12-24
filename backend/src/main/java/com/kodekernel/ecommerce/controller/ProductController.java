@@ -51,8 +51,11 @@ public class ProductController {
             @RequestParam(required = false) String category,
             @RequestParam(required = false) Double minPrice,
             @RequestParam(required = false) Double maxPrice,
+            @RequestParam(required = false) Double minRating,
+            @RequestParam(required = false) Boolean inStock,
             @RequestParam(defaultValue = "newest") String sort) {
-        return ResponseEntity.ok(productService.browseProducts(page, size, search, category, minPrice, maxPrice, sort));
+        return ResponseEntity.ok(productService.browseProducts(page, size, search, category, minPrice, maxPrice,
+                minRating, inStock, sort));
     }
 
     @GetMapping("/featured")

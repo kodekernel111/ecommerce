@@ -15,21 +15,23 @@ import java.util.UUID;
 
 @Repository
 public interface OrderRepository
-                extends JpaRepository<Order, UUID>, JpaSpecificationExecutor<Order> {
-        List<Order> findBySellerId(UUID sellerId);
+        extends JpaRepository<Order, UUID>, JpaSpecificationExecutor<Order> {
+    List<Order> findBySellerId(UUID sellerId);
 
-        @Query("""
-                            SELECT o FROM Order o
-                            JOIN FETCH o.customer
-                            JOIN FETCH o.shippingAddress
-                            WHERE o.id = :orderId
-                        """)
-        Optional<Order> fetchOrderDetail(UUID orderId);
+    @Query("""
+                SELECT o FROM Order o
+                JOIN FETCH o.customer
+                JOIN FETCH o.shippingAddress
+                WHERE o.id = :orderId
+            """)
+    Optional<Order> fetchOrderDetail(UUID orderId);
 
-        List<Order> findAllByOrderByOrderDateDesc();
+    List<Order> findAllByOrderByOrderDateDesc();
 
-        List<Order> findBySellerIdOrderByOrderDateDesc(UUID sellerId);
+    List<Order> findBySellerIdOrderByOrderDateDesc(UUID sellerId);
 
-        Page<Order> findBySellerId(UUID sellerId,
-                        Pageable pageable);
+    Page<Order> findBySellerId(UUID sellerId,
+            Pageable pageable);
+
+    List<Order> findByCustomerUsernameOrderByOrderDateDesc(String username);
 }

@@ -1,14 +1,26 @@
 import React, { useState } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
-import { Link, useNavigate } from 'react-router-dom';
+import { clearCart } from '../features/cart/cartSlice';
+import api from '../api/axios';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
 import { CheckCircle, CreditCard, Truck, Package } from 'lucide-react';
 import LazyImage from '../components/LazyImage';
 
 const CheckoutPage = () => {
+    const dispatch = useDispatch();
     const navigate = useNavigate();
-    const { items, totalAmount } = useSelector((state) => state.cart);
+    const location = useLocation();
+
+    // Check if we are in "Buy Now" mode
+    const buyNowItem = location.state?.buyNowItem;
+
+    const { items: cartItems, totalAmount: cartTotal } = useSelector((state) => state.cart);
+
+    // Determine effective items and total
+    const items = buyNowItem ? [buyNowItem] : cartItems;
+    const totalAmount = buyNowItem ? (buyNowItem.price * buyNowItem.quantity) : cartTotal;
     const [step, setStep] = useState(1); // 1: Shipping, 2: Delivery, 3: Review, 4: Payment, 5: Confirmation
 
     const [deliveryMethod, setDeliveryMethod] = useState('standard'); // 'standard' or 'express'
@@ -94,14 +106,49 @@ const CheckoutPage = () => {
         window.scrollTo(0, 0);
     };
 
-    const handlePaymentSubmit = (e) => {
+    const handlePaymentSubmit = async (e) => {
         e.preventDefault();
-        if (validatePayment()) {
-            // Simulate order placement
-            setTimeout(() => {
-                setStep(5); // Go to Confirmation
-                window.scrollTo(0, 0);
-            }, 1500);
+
+        if (!validatePayment()) {
+            return;
+        }
+
+        try {
+            const orderItems = items.map(item => ({
+                productId: item.id,
+                quantity: item.quantity
+            }));
+
+            const payload = {
+                fullName: `${formData.firstName} ${formData.lastName}`,
+                phone: '0000000000', // You might want to add a phone field to the form or use a default/user profile phone
+                line1: formData.address,
+                line2: '',
+                city: formData.city,
+                state: 'State', // You might want to add state to form
+                pincode: formData.postalCode,
+                paymentMethod: paymentMethod,
+                // Payment Details
+                cardNumber: paymentMethod === 'card' ? formData.cardNumber : null,
+                cardExpiry: paymentMethod === 'card' ? formData.expiry : null,
+                cardCvc: paymentMethod === 'card' ? formData.cvc : null,
+                upiId: paymentMethod === 'upi' ? formData.upiId : null,
+                bankName: paymentMethod === 'netbanking' ? formData.bankName : null,
+                items: orderItems
+            };
+
+            await api.post('/api/orders', payload);
+
+            // Clear cart and redirect ONLY if it was a regular cart order
+            if (!buyNowItem) {
+                dispatch(clearCart());
+            }
+            setStep(5); // Go to confirmation
+            window.scrollTo(0, 0);
+
+        } catch (error) {
+            console.error("Order creation failed", error);
+            alert("Failed to place order. Please try again. " + (error.response?.data?.message || error.message));
         }
     };
 

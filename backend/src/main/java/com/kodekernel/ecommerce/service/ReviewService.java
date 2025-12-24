@@ -59,7 +59,27 @@ public class ReviewService {
         review.setImages(imageUrls);
 
         Review savedReview = reviewRepository.save(review);
+
+        // Update Product Rating
+        updateProductRating(product.getId());
+
         return convertToDTO(savedReview);
+    }
+
+    private void updateProductRating(UUID productId) {
+        Product product = productRepository.findById(productId).orElse(null);
+        if (product != null) {
+            List<Review> reviews = reviewRepository.findByProductIdOrderByCreatedAtDesc(productId);
+            if (!reviews.isEmpty()) {
+                double avg = reviews.stream().mapToInt(Review::getRating).average().orElse(0.0);
+                product.setAverageRating(Math.round(avg * 10.0) / 10.0); // Round to 1 decimal
+                product.setReviewCount(reviews.size());
+            } else {
+                product.setAverageRating(0.0);
+                product.setReviewCount(0);
+            }
+            productRepository.save(product);
+        }
     }
 
     public List<ReviewDTO> getProductReviews(UUID productId) {

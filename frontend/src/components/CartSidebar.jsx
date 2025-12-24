@@ -13,8 +13,9 @@ const CartSidebar = () => {
     if (!isOpen) return null;
 
     return (
-        <div className="fixed inset-0 overflow-hidden z-50 pointer-events-none">
+        <div className="fixed inset-0 overflow-hidden z-[60] pointer-events-none">
             <div className="absolute inset-0 overflow-hidden">
+                <div className="absolute inset-0 bg-black/30 transition-opacity backdrop-blur-md pointer-events-auto" onClick={() => dispatch(toggleCart())}></div>
                 <div className="fixed inset-y-0 right-0 pl-10 max-w-full flex pointer-events-auto">
                     <div className="w-screen max-w-md">
                         <div className="h-full flex flex-col bg-white shadow-xl overflow-y-scroll">
@@ -70,7 +71,8 @@ const CartSidebar = () => {
                                                                     <span className="px-2">{item.quantity}</span>
                                                                     <button
                                                                         onClick={() => dispatch(updateQuantity({ id: item.id, quantity: item.quantity + 1 }))}
-                                                                        className="p-1 hover:bg-gray-100"
+                                                                        className={`p-1 ${item.stock && item.quantity >= item.stock ? 'text-gray-300 cursor-not-allowed' : 'hover:bg-gray-100'}`}
+                                                                        disabled={item.stock && item.quantity >= item.stock}
                                                                     >
                                                                         <Plus className="h-4 w-4" />
                                                                     </button>

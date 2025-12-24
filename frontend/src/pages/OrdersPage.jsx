@@ -6,7 +6,7 @@ import Footer from '../components/Footer';
 import LazyImage from '../components/LazyImage';
 import { Package, Clock, CheckCircle, XCircle, ChevronRight } from 'lucide-react';
 
-const OrderHistoryPage = () => {
+const OrdersPage = () => {
     const [orders, setOrders] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
@@ -94,15 +94,12 @@ const OrderHistoryPage = () => {
                                                 </div>
                                                 <div className="flex flex-col">
                                                     <span className="text-xs text-gray-500 uppercase tracking-wider">Order ID</span>
-                                                    <Link to={`/orders/${order.orderId}`} className="text-sm text-indigo-600 hover:text-indigo-800 font-medium">
-                                                        #{order.orderId || 'Unknown'}
-                                                    </Link>
+                                                    <span className="text-sm text-gray-600">
+                                                        #{order.orderId ? order.orderId.substring(0, 8) : 'Unknown'}...
+                                                    </span>
                                                 </div>
                                             </div>
                                             <div className="flex items-center gap-2">
-                                                <Link to={`/orders/${order.orderId}`} className="text-sm text-indigo-600 hover:text-indigo-900 font-medium flex items-center">
-                                                    View Details <ChevronRight className="ml-1 h-4 w-4" />
-                                                </Link>
                                             </div>
                                         </div>
                                         <div className="border-t border-gray-100 pt-4 flex items-center justify-between">
@@ -134,4 +131,4 @@ const OrderHistoryPage = () => {
     );
 };
 
-export default OrderHistoryPage;
+export default OrdersPage;
